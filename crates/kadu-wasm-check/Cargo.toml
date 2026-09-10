@@ -1,0 +1,12 @@
+[package]
+name = "kadu-wasm-check"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+kadu-core = { path = "../kadu-core" }
+kadu-agent = { path = "../kadu-agent" }

@@ -5,6 +5,7 @@ members = [
     "crates/kadu-agent",
     "crates/kadu-replay",
     "crates/kadu-cli",
+    "crates/kadu-wasm-check",
     "tests",
 ]
 
