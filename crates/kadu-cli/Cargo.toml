@@ -11,3 +11,6 @@ path = "src/main.rs"
 kadu-core = { path = "../kadu-core" }
 kadu-agent = { path = "../kadu-agent" }
 kadu-replay = { path = "../kadu-replay" }
+
+[features]
+trace-hashes = ["kadu-core/trace-hashes", "kadu-replay/trace-hashes"]

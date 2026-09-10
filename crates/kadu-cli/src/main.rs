@@ -4,7 +4,7 @@ use std::time::Instant;
 
 use kadu_agent::{Agent, Dummy, Rusher};
 use kadu_core::ruleset::DEFAULT_RULESET_TOML;
-use kadu_core::{default_ruleset, FighterState, Intent, Ruleset};
+use kadu_core::{default_ruleset, Facing, FighterState, FighterView, Intent, Ruleset, Sim};
 use kadu_replay::{from_json, to_json, verify as verify_replay, Recorder, Replay};
 
 fn make_agent(name: &str) -> Box<dyn Agent> {
@@ -231,8 +231,27 @@ fn intent_glyph(state: FighterState) -> char {
 }
 
 fn cmd_watch(args: &[String]) {
-    let path = args.first().expect("usage: kadu watch <replay.json>");
-    let s = fs::read_to_string(path).unwrap_or_else(|e| panic!("failed to read {path}: {e}"));
+    let mut path: Option<String> = None;
+    let mut replay_to: u32 = 0;
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--replay-to" => {
+                replay_to = args[i + 1].parse().expect("--replay-to must be an integer tick");
+                i += 2;
+            }
+            other => {
+                if path.is_none() {
+                    path = Some(other.to_string());
+                } else {
+                    eprintln!("unknown argument '{other}'");
+                }
+                i += 1;
+            }
+        }
+    }
+    let path = path.expect("usage: kadu watch <replay.json> [--replay-to <tick>]");
+    let s = fs::read_to_string(&path).unwrap_or_else(|e| panic!("failed to read {path}: {e}"));
     let replay = from_json(&s).unwrap_or_else(|e| panic!("failed to parse replay {path}: {e}"));
 
     let ruleset = Ruleset::from_toml_str(&replay.ruleset_toml).unwrap_or_else(|_| default_ruleset());
@@ -241,8 +260,15 @@ fn cmd_watch(args: &[String]) {
 
     const COLS: i64 = 60;
 
+    if replay_to > 0 {
+        println!("fast-forwarding silently to tick {replay_to}...");
+    }
+
     for (a, b) in &replay.intent_stream {
         let report = sim.tick([*a, *b]);
+        if sim.global_tick() < replay_to {
+            continue;
+        }
         let v0 = sim.fighter_view(0);
         let v1 = sim.fighter_view(1);
 
@@ -297,10 +323,138 @@ fn cmd_watch(args: &[String]) {
     }
 }
 
+/// Re-simulates `replay` from scratch through `intent_stream[0..=index]` and
+/// returns (global_tick, round, fighter0, fighter1) at that point. `None`
+/// for `index` returns the pre-match initial state (before any tick).
+fn state_at(replay: &Replay, index: Option<usize>) -> (u32, u8, FighterView, FighterView) {
+    let ruleset = Ruleset::from_toml_str(&replay.ruleset_toml).unwrap_or_else(|_| default_ruleset());
+    let mut sim = Sim::new(ruleset, replay.rng_seed);
+    if let Some(index) = index {
+        for k in 0..=index {
+            let (a, b) = replay.intent_stream[k];
+            sim.tick([a, b]);
+        }
+    }
+    (sim.global_tick(), sim.round(), sim.fighter_view(0), sim.fighter_view(1))
+}
+
+fn fmt_view(v: &FighterView) -> Vec<(&'static str, String)> {
+    vec![
+        ("position.x".into(), format!("{:?}", v.position.x)),
+        ("position.y".into(), format!("{:?}", v.position.y)),
+        ("velocity.x".into(), format!("{:?}", v.velocity.x)),
+        ("velocity.y".into(), format!("{:?}", v.velocity.y)),
+        ("facing".into(), if v.facing == Facing::Right { "Right".to_string() } else { "Left".to_string() }),
+        ("vitality".into(), v.vitality.to_string()),
+        ("surge".into(), v.surge.to_string()),
+        ("guard".into(), v.guard.to_string()),
+        ("state".into(), format!("{:?}", v.state)),
+        ("state_tick".into(), v.state_tick.to_string()),
+        ("combo_count".into(), v.combo_count.to_string()),
+        ("airborne".into(), v.airborne.to_string()),
+    ]
+}
+
+fn print_fighter_diff(label: &str, a: &FighterView, b: &FighterView) {
+    println!("  {label}");
+    println!("    {:<14} {:<24} {:<24}", "field", "A", "B");
+    let fa = fmt_view(a);
+    let fb = fmt_view(b);
+    for ((name, va), (_, vb)) in fa.iter().zip(fb.iter()) {
+        let marker = if va != vb { "  <-- DIFF" } else { "" };
+        println!("    {name:<14} {va:<24} {vb:<24}{marker}");
+    }
+}
+
+fn cmd_diverge(args: &[String]) {
+    let mut path_a: Option<String> = None;
+    let mut path_b: Option<String> = None;
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--a" => {
+                path_a = Some(args[i + 1].clone());
+                i += 2;
+            }
+            "--b" => {
+                path_b = Some(args[i + 1].clone());
+                i += 2;
+            }
+            other => {
+                eprintln!("unknown argument '{other}'");
+                i += 1;
+            }
+        }
+    }
+    let path_a = path_a.expect("usage: kadu diverge --a <run_a.json> --b <run_b.json>");
+    let path_b = path_b.expect("usage: kadu diverge --a <run_a.json> --b <run_b.json>");
+
+    let replay_a = from_json(&fs::read_to_string(&path_a).unwrap_or_else(|e| panic!("read {path_a}: {e}"))).unwrap_or_else(|e| panic!("parse {path_a}: {e}"));
+    let replay_b = from_json(&fs::read_to_string(&path_b).unwrap_or_else(|e| panic!("read {path_b}: {e}"))).unwrap_or_else(|e| panic!("parse {path_b}: {e}"));
+
+    let (Some(ha), Some(hb)) = (&replay_a.tick_hashes, &replay_b.tick_hashes) else {
+        eprintln!(
+            "error: kadu diverge requires both replays to have been recorded with the `trace-hashes` feature enabled.\n\
+             {path_a}: tick_hashes {}\n\
+             {path_b}: tick_hashes {}\n\
+             Rebuild with `cargo build --release --features trace-hashes -p kadu-cli` and re-record both replays.",
+            if replay_a.tick_hashes.is_some() { "present" } else { "MISSING" },
+            if replay_b.tick_hashes.is_some() { "present" } else { "MISSING" },
+        );
+        std::process::exit(1);
+    };
+
+    let min_len = ha.len().min(hb.len());
+    let mut lo = 0usize;
+    let mut hi = min_len;
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        if ha[mid] == hb[mid] {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+
+    if lo == min_len {
+        if ha.len() == hb.len() {
+            println!("OK: no divergence found. {} ticks compared, all hashes match.", ha.len());
+            return;
+        }
+        println!(
+            "no hash mismatch within the first {min_len} ticks, but the replays differ in length: A has {} ticks, B has {} ticks.",
+            ha.len(),
+            hb.len()
+        );
+        println!("the shorter replay ended at tick {min_len}; the other continued beyond it.");
+        return;
+    }
+
+    let diverge_index = lo;
+    let before_index = if diverge_index == 0 { None } else { Some(diverge_index - 1) };
+
+    let (tick_before, round_before, a0_before, a1_before) = before_index.map(|idx| state_at(&replay_a, Some(idx))).unwrap_or_else(|| state_at(&replay_a, None));
+    let (_, _, b0_before, b1_before) = before_index.map(|idx| state_at(&replay_b, Some(idx))).unwrap_or_else(|| state_at(&replay_b, None));
+    let (tick_at, round_at, a0_at, a1_at) = state_at(&replay_a, Some(diverge_index));
+    let (_, _, b0_at, b1_at) = state_at(&replay_b, Some(diverge_index));
+
+    println!("first differing tick: hash index {diverge_index} (global tick {tick_at}, round {round_at})");
+    println!("A: {path_a}");
+    println!("B: {path_b}");
+    println!();
+    println!("--- tick {tick_before} (round {round_before}, immediately before) ---");
+    print_fighter_diff("P1", &a0_before, &b0_before);
+    print_fighter_diff("P2", &a1_before, &b1_before);
+    println!();
+    println!("--- tick {tick_at} (round {round_at}, first differing tick) ---");
+    print_fighter_diff("P1", &a0_at, &b0_at);
+    print_fighter_diff("P2", &a1_at, &b1_at);
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Some(cmd) = args.first() else {
-        eprintln!("usage: kadu <run|verify|bench|watch> [args]");
+        eprintln!("usage: kadu <run|verify|bench|watch|diverge> [args]");
         std::process::exit(2);
     };
     let rest = &args[1..];
@@ -309,8 +463,9 @@ fn main() {
         "verify" => cmd_verify(rest),
         "bench" => cmd_bench(rest),
         "watch" => cmd_watch(rest),
+        "diverge" => cmd_diverge(rest),
         other => {
-            eprintln!("unknown command '{other}'. usage: kadu <run|verify|bench|watch> [args]");
+            eprintln!("unknown command '{other}'. usage: kadu <run|verify|bench|watch|diverge> [args]");
             std::process::exit(2);
         }
     }

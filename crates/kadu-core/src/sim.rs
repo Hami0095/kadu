@@ -78,7 +78,15 @@ pub struct Sim {
     passive_ticks: u32,
     passive_min_distance: Fixed,
     passive_tracked_fighter: Option<usize>,
+
+    #[cfg(feature = "trace-hashes")]
+    tick_hashes: Vec<u64>,
 }
+
+/// True when this build retains a per-tick hash trace (see `Sim::tick_hashes`).
+/// Exposed as a value, not just a cfg, so replay/CLI code can give a clear
+/// runtime error instead of failing to compile a code path.
+pub const TRACE_HASHES_ENABLED: bool = cfg!(feature = "trace-hashes");
 
 impl Sim {
     pub fn new(ruleset: Ruleset, seed: u64) -> Sim {
@@ -102,6 +110,8 @@ impl Sim {
             passive_ticks: 0,
             passive_min_distance: Fixed::ZERO,
             passive_tracked_fighter: None,
+            #[cfg(feature = "trace-hashes")]
+            tick_hashes: Vec::new(),
             ruleset,
         };
         // Seed the observation buffer with the pre-match state so an agent
@@ -444,10 +454,20 @@ impl Sim {
         self.chain_hash = hash::chain(self.chain_hash, state_hash);
         report.state_hash = state_hash;
         report.chain_hash = self.chain_hash;
+
+        #[cfg(feature = "trace-hashes")]
+        self.tick_hashes.push(state_hash);
     }
 
     pub fn chain_hash(&self) -> u64 {
         self.chain_hash
+    }
+
+    /// Every per-tick state hash recorded so far, in order. Only populated
+    /// when built with the `trace-hashes` feature.
+    #[cfg(feature = "trace-hashes")]
+    pub fn tick_hashes(&self) -> &[u64] {
+        &self.tick_hashes
     }
 
     pub fn global_tick(&self) -> u32 {

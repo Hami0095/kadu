@@ -29,6 +29,11 @@ pub struct Replay {
     pub warnings: Vec<WarningEntry>,
     pub result: Option<ResultEntry>,
     pub final_state_hash_chain: u64,
+    /// Every per-tick state hash, in order. Only present when this replay
+    /// was recorded with the `trace-hashes` feature enabled; `kadu diverge`
+    /// requires it on both inputs and errors clearly otherwise.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tick_hashes: Option<Vec<u64>>,
 }
 
 pub struct VerifyResult {
@@ -91,6 +96,11 @@ impl Recorder {
     }
 
     pub fn into_replay(self) -> Replay {
+        #[cfg(feature = "trace-hashes")]
+        let tick_hashes = Some(self.sim.tick_hashes().to_vec());
+        #[cfg(not(feature = "trace-hashes"))]
+        let tick_hashes = None;
+
         Replay {
             ruleset_hash: self.sim.ruleset.content_hash(),
             ruleset_toml: self.ruleset_toml,
@@ -101,6 +111,7 @@ impl Recorder {
             warnings: self.warnings,
             result: self.result,
             final_state_hash_chain: self.sim.chain_hash(),
+            tick_hashes,
         }
     }
 }

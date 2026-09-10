@@ -16,7 +16,7 @@ pub mod types;
 
 pub use fixed::{Fixed, Vec2};
 pub use ruleset::{default_ruleset, Ruleset};
-pub use sim::{MatchEndReason, MatchResult, Phase, RoundOutcome, Sim, TickReport};
+pub use sim::{MatchEndReason, MatchResult, Phase, RoundOutcome, Sim, TickReport, TRACE_HASHES_ENABLED};
 pub use types::{Agent, AttackKind, Direction, Facing, FighterState, FighterView, Intent, Observation};
 
 #[cfg(test)]

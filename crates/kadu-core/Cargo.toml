@@ -7,4 +7,10 @@ edition.workspace = true
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
 
+[features]
+# Retain every per-tick state hash in a Vec<u64> on the Sim, for
+# kadu diverge to bisect. Off by default: the hot tick loop must stay
+# allocation-free to hold the 500 bouts/sec/core benchmark target.
+trace-hashes = []
+
 [dev-dependencies]
