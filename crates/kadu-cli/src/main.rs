@@ -1,3 +1,6 @@
+mod stats;
+mod tourney;
+
 use std::fmt::Write as _;
 use std::fs;
 use std::time::Instant;
@@ -70,6 +73,8 @@ fn cmd_run(args: &[String]) {
     let mut seed: u64 = 42;
     let mut out = "match.json".to_string();
     let mut ruleset_path: Option<String> = None;
+    let mut stats_only = false;
+    let mut stats_out: Option<String> = None;
 
     let mut i = 0;
     while i < args.len() {
@@ -94,6 +99,14 @@ fn cmd_run(args: &[String]) {
                 ruleset_path = Some(args[i + 1].clone());
                 i += 2;
             }
+            "--stats-only" => {
+                stats_only = true;
+                i += 1;
+            }
+            "--stats-out" => {
+                stats_out = Some(args[i + 1].clone());
+                i += 2;
+            }
             other => {
                 eprintln!("unknown argument '{other}'");
                 i += 1;
@@ -101,16 +114,35 @@ fn cmd_run(args: &[String]) {
         }
     }
 
-    let replay = run_match(&agent_a, &agent_b, seed, ruleset_path.as_deref());
-    let json = to_json(&replay).expect("serialize replay");
-    fs::write(&out, json).unwrap_or_else(|e| panic!("failed to write {out}: {e}"));
+    let (ruleset, ruleset_toml) = load_ruleset(ruleset_path.as_deref());
+    let agent_ai = make_agent(&agent_a, seed, 0);
+    let agent_bi = make_agent(&agent_b, seed, 1);
+    let (replay, match_stats) = stats::run_match_with_stats(agent_ai, agent_bi, ruleset, seed, ruleset_toml, &agent_a, &agent_b);
+
+    let stats_path = stats_out.unwrap_or_else(|| {
+        if out.ends_with(".json") {
+            format!("{}.stats.json", &out[..out.len() - 5])
+        } else {
+            format!("{out}.stats.json")
+        }
+    });
+    let stats_json = serde_json::to_string_pretty(&match_stats).expect("serialize stats");
+    fs::write(&stats_path, stats_json).unwrap_or_else(|e| panic!("failed to write {stats_path}: {e}"));
+
+    if !stats_only {
+        let json = to_json(&replay).expect("serialize replay");
+        fs::write(&out, json).unwrap_or_else(|e| panic!("failed to write {out}: {e}"));
+    }
 
     match &replay.result {
-        Some(r) => println!(
-            "match complete: winner={:?} reason={} chain_hash={:#018x} -> {out}",
-            r.winner, r.reason, replay.final_state_hash_chain
-        ),
-        None => println!("match ended without a recorded result (aborted) -> {out}"),
+        Some(r) => {
+            let replay_note = if stats_only { String::new() } else { format!(" -> {out}") };
+            println!(
+                "match complete: winner={:?} reason={} chain_hash={:#018x}{replay_note} stats -> {stats_path}",
+                r.winner, r.reason, replay.final_state_hash_chain
+            )
+        }
+        None => println!("match ended without a recorded result (aborted), stats -> {stats_path}"),
     }
 }
 

@@ -59,6 +59,13 @@ pub struct HitLog {
     pub damage: i32,
     pub hard_knockdown: bool,
     pub is_throw: bool,
+    /// The move that connected. `None` for a throw (throws aren't an
+    /// `AttackKind`).
+    pub kind: Option<AttackKind>,
+    /// True for the synthetic zero-damage entries logged when two throws
+    /// tech each other. `attacker_idx` is whichever fighter's own throw got
+    /// teched; `is_throw` is also true on these.
+    pub is_tech: bool,
 }
 
 pub struct RoundWarnLog {
@@ -87,6 +94,9 @@ pub fn resolve(fighters: &mut [Fighter; 2], rs: &Ruleset, tick: u32) -> Vec<HitL
             let push = rs.fighter_width;
             fighters[0].position.x = fighters[0].position.x - push;
             fighters[1].position.x = fighters[1].position.x + push;
+            for (i, j) in [(0usize, 1usize), (1, 0)] {
+                logs.push(HitLog { attacker_idx: i, defender_idx: j, blocked: false, damage: 0, hard_knockdown: false, is_throw: true, kind: None, is_tech: true });
+            }
         }
     } else {
         for (i, j) in [(0usize, 1usize), (1, 0)] {
@@ -107,7 +117,7 @@ pub fn resolve(fighters: &mut [Fighter; 2], rs: &Ruleset, tick: u32) -> Vec<HitL
                 fighters[i].hitstop = rs.throw.hitstop;
                 fighters[j].hitstop = rs.throw.hitstop;
                 fighters[j].enter_state(FighterState::Thrown);
-                logs.push(HitLog { attacker_idx: i, defender_idx: j, blocked: false, damage: dmg, hard_knockdown: false, is_throw: true });
+                logs.push(HitLog { attacker_idx: i, defender_idx: j, blocked: false, damage: dmg, hard_knockdown: false, is_throw: true, kind: None, is_tech: false });
             }
         }
     }
@@ -152,7 +162,7 @@ pub fn resolve(fighters: &mut [Fighter; 2], rs: &Ruleset, tick: u32) -> Vec<HitL
                 fighters[j].stun_ticks_target = spec.blockstun;
                 fighters[j].enter_state(FighterState::BlockStun);
             }
-            logs.push(HitLog { attacker_idx: i, defender_idx: j, blocked: true, damage: chip, hard_knockdown: false, is_throw: false });
+            logs.push(HitLog { attacker_idx: i, defender_idx: j, blocked: true, damage: chip, hard_knockdown: false, is_throw: false, kind: Some(kind), is_tech: false });
         } else {
             let hit_number = fighters[j].combo_count as usize;
             let scale_pct = rs
@@ -181,7 +191,7 @@ pub fn resolve(fighters: &mut [Fighter; 2], rs: &Ruleset, tick: u32) -> Vec<HitL
                 fighters[j].stun_ticks_target = spec.hitstun;
                 fighters[j].enter_state(FighterState::HitStun);
             }
-            logs.push(HitLog { attacker_idx: i, defender_idx: j, blocked: false, damage: dmg, hard_knockdown, is_throw: false });
+            logs.push(HitLog { attacker_idx: i, defender_idx: j, blocked: false, damage: dmg, hard_knockdown, is_throw: false, kind: Some(kind), is_tech: false });
         }
     }
 

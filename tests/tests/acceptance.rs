@@ -230,7 +230,10 @@ fn simultaneous_throws_within_tech_window_deal_no_damage() {
     let x0_before = fighters[0].position.x;
     let x1_before = fighters[1].position.x;
     let logs = combat::resolve(&mut fighters, &rs, 0);
-    assert!(logs.is_empty(), "a teched throw should deal no damage");
+    // A tech logs a zero-damage HitLog per fighter (for stats: "throws
+    // teched"), but deals no damage and applies no hitstun/knockdown.
+    assert!(logs.iter().all(|h| h.is_tech && h.damage == 0), "a teched throw should log only zero-damage tech events, got {:?}", logs.iter().map(|h| (h.attacker_idx, h.is_tech, h.damage)).collect::<Vec<_>>());
+    assert_eq!(logs.len(), 2, "expected one tech entry per fighter");
     assert_eq!(fighters[0].vitality, v0_before);
     assert_eq!(fighters[1].vitality, v1_before);
     assert!(fighters[0].position.x < x0_before);

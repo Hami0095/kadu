@@ -44,6 +44,8 @@ dependencies = [
  "kadu-agent",
  "kadu-core",
  "kadu-replay",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

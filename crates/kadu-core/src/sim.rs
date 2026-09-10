@@ -133,6 +133,16 @@ impl Sim {
         self.fighters[idx].view()
     }
 
+    /// The strike kind currently in the fighter's attack animation, if any.
+    /// A host-only query, deliberately not part of `Observation`/
+    /// `FighterView` - it's for trusted tooling (stats collection, replay
+    /// analysis) that already has direct `Sim` access, not for agents,
+    /// which should keep inferring "what's coming" the same way a human
+    /// player would: from state and timing, not a label.
+    pub fn fighter_attack_kind(&self, idx: usize) -> Option<crate::types::AttackKind> {
+        self.fighters[idx].attack_kind
+    }
+
     fn distance(&self) -> Fixed {
         (self.fighters[0].position.x - self.fighters[1].position.x).abs()
     }
