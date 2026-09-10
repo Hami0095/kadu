@@ -1,0 +1,13 @@
+[package]
+name = "kadu-integration-tests"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[dev-dependencies]
+kadu-core = { path = "../crates/kadu-core" }
+kadu-agent = { path = "../crates/kadu-agent" }
+kadu-replay = { path = "../crates/kadu-replay" }
