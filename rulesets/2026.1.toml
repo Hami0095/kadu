@@ -1,0 +1,115 @@
+[timing]
+tick_rate            = 60      # ticks per second
+round_ticks          = 5400    # 90 seconds
+intermission_ticks   = 480     # 8 seconds
+opening_freeze_ticks = 90      # inputs discarded during this
+rounds_to_win        = 2       # best of 3
+max_rounds           = 5
+
+[arena]
+arena_width          = 2400    # units
+ceiling              = 900
+fighter_height       = 1000
+fighter_width        = 72
+start_separation     = 600
+
+[meters]
+vitality             = 1000
+surge_max            = 300
+guard_max            = 100
+
+[agent]
+observation_delay    = 4       # ticks the agent's view lags reality
+reflex_interval      = 5       # agents are polled every N ticks
+
+[movement]
+gravity              = 3200    # units per second squared
+walk_speed           = 340     # units per second
+dash_speed           = 900
+dash_ticks           = 14
+jump_velocity        = 1500
+
+[sudden_death]
+ticks                = 1800
+vitality              = 250
+
+[passivity]
+warning_ticks        = 300
+penalty_fraction_pct = 10      # percent of current vitality subtracted on 2nd warning
+
+[guard_crush]
+crush_ticks          = 40
+refill_to            = 50
+
+[throw]
+tech_window_ticks    = 7
+
+[moves.light]
+startup = 4
+active = 2
+recovery = 7
+damage = 30
+block_damage = 6
+hitstun = 12
+blockstun = 8
+guard_damage = 6
+hitstop = 4
+
+[moves.medium]
+startup = 7
+active = 3
+recovery = 14
+damage = 60
+block_damage = 12
+hitstun = 18
+blockstun = 12
+guard_damage = 12
+hitstop = 6
+
+[moves.heavy]
+startup = 12
+active = 4
+recovery = 22
+damage = 100
+block_damage = 20
+hitstun = 26
+blockstun = 16
+guard_damage = 22
+hitstop = 10
+
+[moves.throw]
+startup = 5
+active = 2
+recovery = 20
+damage = 120
+hitstop = 8
+
+[combo]
+scaling_pct = [100, 90, 80, 70, 60, 50]
+floor_pct = 20
+hard_knockdown_hit = 15
+
+[hitboxes]
+# Rectangles are [x_offset, y_offset, width, height] relative to fighter origin (feet, facing-forward-positive x).
+# Standing normals
+light_hitbox    = [40, 550, 90, 120]
+medium_hitbox   = [40, 500, 110, 160]
+heavy_hitbox    = [40, 450, 130, 220]
+throw_hitbox    = [30, 400, 80, 300]
+# Crouching normals (lower)
+light_hitbox_crouch  = [40, 250, 90, 120]
+medium_hitbox_crouch = [40, 220, 110, 140]
+# Hurtboxes (six regions), standing
+hurt_head      = [-30, 850, 60, 150]
+hurt_torso     = [-40, 500, 80, 350]
+hurt_arm_left  = [-70, 500, 30, 300]
+hurt_arm_right = [40, 500, 30, 300]
+hurt_leg_left  = [-40, 0, 35, 500]
+hurt_leg_right = [5, 0, 35, 500]
+# Hurtboxes, crouching (compressed vertically)
+hurt_head_crouch      = [-30, 500, 60, 130]
+hurt_torso_crouch     = [-40, 250, 80, 260]
+hurt_arm_left_crouch  = [-70, 250, 30, 220]
+hurt_arm_right_crouch = [40, 250, 30, 220]
+hurt_leg_left_crouch  = [-40, 0, 35, 260]
+hurt_leg_right_crouch = [5, 0, 35, 260]
