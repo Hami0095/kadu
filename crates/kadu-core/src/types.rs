@@ -136,6 +136,15 @@ impl FighterState {
                 | FighterState::Crouch
                 | FighterState::JumpRise
                 | FighterState::JumpFall
+                // A blocking fighter must be able to choose to stop blocking
+                // (or switch stance) on its own initiative - only actual
+                // stun (HitStun/BlockStun) should take the choice away.
+                // Without this, nothing ever transitions a fighter out of
+                // BlockStand/BlockCrouch except being hit, so any agent that
+                // blocks even once is stuck blocking for the rest of the
+                // match.
+                | FighterState::BlockStand
+                | FighterState::BlockCrouch
         )
     }
 }
