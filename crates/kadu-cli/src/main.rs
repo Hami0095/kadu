@@ -2,15 +2,21 @@ use std::fmt::Write as _;
 use std::fs;
 use std::time::Instant;
 
-use kadu_agent::{Agent, Dummy, Rusher};
+use kadu_agent::{Agent, Dummy, Random, Runner, Rusher, Spammer, Turtle};
 use kadu_core::ruleset::DEFAULT_RULESET_TOML;
 use kadu_core::{default_ruleset, Facing, FighterState, FighterView, Intent, Ruleset, Sim};
 use kadu_replay::{from_json, to_json, verify as verify_replay, Recorder, Replay};
 
-fn make_agent(name: &str) -> Box<dyn Agent> {
+pub const AGENT_NAMES: &[&str] = &["dummy", "rusher", "turtle", "runner", "spammer", "random"];
+
+fn make_agent(name: &str, match_seed: u64, slot: usize) -> Box<dyn Agent> {
     match name {
         "dummy" => Box::new(Dummy),
         "rusher" => Box::new(Rusher::new()),
+        "turtle" => Box::new(Turtle::new()),
+        "runner" => Box::new(Runner::new()),
+        "spammer" => Box::new(Spammer),
+        "random" => Box::new(Random::new(match_seed, slot)),
         other => {
             eprintln!("unknown agent '{other}', falling back to dummy");
             Box::new(Dummy)
@@ -31,8 +37,8 @@ fn load_ruleset(path: Option<&str>) -> (Ruleset, String) {
 
 fn run_match(agent_a_name: &str, agent_b_name: &str, seed: u64, ruleset_path: Option<&str>) -> Replay {
     let (ruleset, ruleset_toml) = load_ruleset(ruleset_path);
-    let mut agent_a = make_agent(agent_a_name);
-    let mut agent_b = make_agent(agent_b_name);
+    let mut agent_a = make_agent(agent_a_name, seed, 0);
+    let mut agent_b = make_agent(agent_b_name, seed, 1);
     let reflex_interval = ruleset.reflex_interval;
 
     let mut rec = Recorder::new(ruleset, ruleset_toml, seed, agent_a_name, agent_b_name);
