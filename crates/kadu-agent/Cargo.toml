@@ -1,0 +1,7 @@
+[package]
+name = "kadu-agent"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+kadu-core = { path = "../kadu-core" }
