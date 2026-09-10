@@ -1,0 +1,13 @@
+[package]
+name = "kadu-cli"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "kadu"
+path = "src/main.rs"
+
+[dependencies]
+kadu-core = { path = "../kadu-core" }
+kadu-agent = { path = "../kadu-agent" }
+kadu-replay = { path = "../kadu-replay" }
