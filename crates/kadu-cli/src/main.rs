@@ -124,9 +124,27 @@ fn cmd_verify(args: &[String]) {
     }
 }
 
+/// Pulls `expected_aggregate = "0x...."` out of a determinism/expected.toml
+/// style file. Deliberately not a full TOML parse: this file's shape is
+/// controlled by us and kept trivial on purpose.
+fn read_expected_aggregate(path: &str) -> u64 {
+    let s = fs::read_to_string(path).unwrap_or_else(|e| panic!("failed to read {path}: {e}"));
+    for line in s.lines() {
+        let line = line.trim();
+        if let Some(rest) = line.strip_prefix("expected_aggregate") {
+            let rest = rest.trim_start().strip_prefix('=').expect("malformed expected_aggregate line").trim();
+            let hex = rest.trim_matches('"');
+            let hex = hex.strip_prefix("0x").unwrap_or(hex);
+            return u64::from_str_radix(hex, 16).expect("expected_aggregate is not valid hex");
+        }
+    }
+    panic!("no expected_aggregate key found in {path}");
+}
+
 fn cmd_bench(args: &[String]) {
     let mut matches: u32 = 1000;
     let mut seed: u64 = 1;
+    let mut expect_path: Option<String> = None;
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -136,6 +154,10 @@ fn cmd_bench(args: &[String]) {
             }
             "--seed" => {
                 seed = args[i + 1].parse().expect("--seed must be an integer");
+                i += 2;
+            }
+            "--expect" => {
+                expect_path = Some(args[i + 1].clone());
                 i += 2;
             }
             other => {
@@ -162,8 +184,25 @@ fn cmd_bench(args: &[String]) {
 
     let elapsed = start.elapsed();
     let per_sec = matches as f64 / elapsed.as_secs_f64();
+    let computed = aggregate.finish();
     println!("matches={matches} elapsed={:.3}s matches/sec={:.1} divergences={divergences}", elapsed.as_secs_f64(), per_sec);
-    println!("aggregate_hash={:#018x}", aggregate.finish());
+    println!("aggregate_hash={computed:#018x}");
+
+    if divergences > 0 {
+        eprintln!("FAIL: {divergences} match(es) did not reproduce their own hash chain");
+        std::process::exit(1);
+    }
+
+    if let Some(path) = expect_path {
+        let expected = read_expected_aggregate(&path);
+        if computed != expected {
+            eprintln!("FAIL: aggregate mismatch against {path}");
+            eprintln!("  expected: {expected:#018x}");
+            eprintln!("  computed: {computed:#018x}");
+            std::process::exit(1);
+        }
+        println!("OK: aggregate matches {path}");
+    }
 }
 
 fn intent_glyph(state: FighterState) -> char {

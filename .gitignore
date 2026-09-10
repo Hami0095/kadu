@@ -1,2 +1,4 @@
 /target
 *.json
+!tests/corpus/*.json
+!determinism/*.json

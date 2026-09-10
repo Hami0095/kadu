@@ -1,0 +1,9 @@
+# The aggregate chain hash of `kadu bench --matches 10000 --seed 1`.
+# This value changes ONLY when simulation behaviour changes on purpose.
+# Updating it without a matching ruleset or engine version bump is a bug.
+engine_version      = "0.1.0"
+ruleset             = "2026.1"
+ruleset_hash        = "0x03828db7ad476c4c"
+bench_matches       = 10000
+bench_seed          = 1
+expected_aggregate  = "0x4ee3a3654ea228e5"
