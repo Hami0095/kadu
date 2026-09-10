@@ -492,7 +492,7 @@ fn cmd_diverge(args: &[String]) {
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Some(cmd) = args.first() else {
-        eprintln!("usage: kadu <run|verify|bench|watch|diverge> [args]");
+        eprintln!("usage: kadu <run|verify|bench|watch|diverge|tourney> [args]");
         std::process::exit(2);
     };
     let rest = &args[1..];
@@ -502,8 +502,9 @@ fn main() {
         "bench" => cmd_bench(rest),
         "watch" => cmd_watch(rest),
         "diverge" => cmd_diverge(rest),
+        "tourney" => tourney::cmd_tourney(rest),
         other => {
-            eprintln!("unknown command '{other}'. usage: kadu <run|verify|bench|watch|diverge> [args]");
+            eprintln!("unknown command '{other}'. usage: kadu <run|verify|bench|watch|diverge|tourney> [args]");
             std::process::exit(2);
         }
     }
