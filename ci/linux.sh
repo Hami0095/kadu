@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Determinism CI, Linux leg. Run inside a genuine Linux container
 # (rust:1-bookworm) via `docker run -v "$WORKSPACE":/work -w /work
-# rust:1-bookworm bash ci/linux.sh`. Mirrors the ubuntu-latest job in
-# .github/workflows/determinism.yml.
+# rust:1-bookworm bash ci/linux.sh`. Used by the Jenkinsfile's Linux and
+# aarch64 (QEMU) legs.
 set -euo pipefail
 
 echo "--- environment ---"

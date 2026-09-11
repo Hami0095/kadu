@@ -1,5 +1,6 @@
-// Jenkins mirror of .github/workflows/determinism.yml, for use while the
-// GitHub Actions billing issue on this account is unresolved.
+// The determinism gate. This is the sole CI/CD pipeline for this repo -
+// GitHub Actions is not used here; everything runs on this local Jenkins
+// controller.
 //
 // This controller runs natively on Windows, so:
 //   - the "Windows (x86_64)" stage runs directly on the controller's
@@ -28,8 +29,9 @@
 //   - "macOS (ARM64)" is NOT run here: there is no Apple hardware, VM, or
 //     cloud Mac agent available in this environment, and Docker cannot
 //     legally or technically run macOS containers. This stage is left in
-//     as documentation of what the GitHub Actions matrix covers once
-//     billing is restored, and is skipped rather than faked.
+//     as documentation of the target matrix, and is skipped rather than
+//     faked; register a real 'macos'-labeled agent and flip its `when`
+//     to activate it.
 
 pipeline {
     agent none

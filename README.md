@@ -123,17 +123,16 @@ tuning/
 
 ## CI
 
-`.github/workflows/determinism.yml` runs the determinism gate (workspace
-tests, the no-float check, a release build, `kadu bench` checked against
-`determinism/expected.toml`, `kadu verify` over the replay corpus) across
-Linux, Windows, and macOS on every push — currently blocked by a billing
-issue on the GitHub account hosting the repo, so a local **Jenkins**
-instance mirrors the same checks in the meantime (see `Jenkinsfile`):
-genuine Linux (Docker), genuine Windows (native), genuine `aarch64` (Docker
-under QEMU emulation), and genuine `wasm32` (compiled and run under Node) -
-four independently-generated code paths all required to agree on one
-64-bit number. macOS isn't run anywhere right now: no Apple hardware or
-cloud Mac agent is available in this environment.
+CI/CD runs on a local **Jenkins** instance only (see `Jenkinsfile`) —
+GitHub Actions is not used for this repo. The pipeline runs the
+determinism gate (workspace tests, the no-float check, a release build,
+`kadu bench` checked against `determinism/expected.toml`, `kadu verify`
+over the replay corpus) across four independently-generated code paths,
+all required to agree on one 64-bit number: genuine Linux (Docker),
+genuine Windows (native), genuine `aarch64` (Docker under QEMU emulation),
+and genuine `wasm32` (compiled and run under Node). macOS isn't run
+anywhere right now: no Apple hardware or cloud Mac agent is available in
+this environment.
 
 ## Contributing
 

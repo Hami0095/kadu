@@ -5,10 +5,11 @@ deterministic: the aggregate chain hash of `kadu bench --matches 10000 --seed 1`
 (Rusher vs Dummy, 10,000 independent matches, each match's final per-tick
 hash chain folded into one FNV-1a aggregate).
 
-CI (`.github/workflows/determinism.yml`) runs this bench on Linux/x86_64,
-macOS/ARM64 and Windows/x86_64 on every push and pull request, and fails
-the build if the printed aggregate does not match `expected_aggregate` in
-this file, on any of the three.
+CI (the `Jenkinsfile`, run on a local Jenkins instance - this repo does
+not use GitHub Actions) runs this bench on genuine Linux/x86_64, genuine
+Windows/x86_64, genuine Linux/aarch64 (under QEMU), and genuine wasm32
+(under Node) on every build, and fails if the printed aggregate does not
+match `expected_aggregate` in this file, on any of the four.
 
 ## Why this file exists
 

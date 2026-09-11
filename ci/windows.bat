@@ -1,6 +1,6 @@
 @echo off
-REM Determinism CI, Windows leg. Mirrors the windows-latest job in
-REM .github/workflows/determinism.yml. Requires a space-free MinGW-w64
+REM Determinism CI, Windows leg. Used by the Jenkinsfile's native Windows
+REM stage. Requires a space-free MinGW-w64
 REM install on PATH (the Windows Rust std linker on this machine has no
 REM MSVC Build Tools available, and rustc's mingw-self-contained linker
 REM invocation breaks on paths containing spaces).
