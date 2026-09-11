@@ -2,13 +2,8 @@
 # This value changes ONLY when simulation behaviour changes on purpose.
 # Updating it without a matching ruleset or engine version bump is a bug.
 engine_version      = "0.2.0"
-ruleset             = "2026.5"
-ruleset_hash        = "0xcc083260757a969b"
+ruleset             = "2026.6"
+ruleset_hash        = "0x0206ba9299ae75bd"
 bench_matches       = 10000
 bench_seed          = 1
-# Unchanged by Change 4 (round_ticks 5400 -> 3600): kadu bench's fixed
-# Rusher-vs-Dummy matchup always ends in a quick KO well before either
-# round clock would expire, so it never observes the shorter round at all -
-# confirmed by rerunning before/after and getting the same value.
-# ruleset_hash above still changed, since the ruleset content did.
-expected_aggregate  = "0x8bf709d03f3d7990"
+expected_aggregate  = "0x39b769d6bde8d2a3"

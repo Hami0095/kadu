@@ -3,7 +3,7 @@
 # tuning/CHANGELOG.md and determinism/README.md's update procedure.
 # The filename (rulesets/2026.1.toml) tracks the ruleset *family*; this
 # tracks the specific revision within it.
-version = "2026.5"
+version = "2026.6"
 
 [timing]
 tick_rate            = 60      # ticks per second
@@ -32,9 +32,9 @@ reflex_interval      = 5       # agents are polled every N ticks
 
 [movement]
 gravity              = 3200    # units per second squared
-walk_speed           = 340     # units per second
-dash_speed           = 900
-dash_ticks           = 14
+walk_speed           = 400     # units per second (v0.2 Change 5: 340 -> 400; walking should be a viable way to close distance, not always dominated by dashing)
+dash_speed           = 700     # v0.2 Change 5: 900 -> 700
+dash_ticks           = 10     # v0.2 Change 5: 14 -> 10; dash distance falls from ~210 to ~117 units, so a dash no longer trivially crosses the whole approach range
 jump_velocity        = 1500
 
 [sudden_death]

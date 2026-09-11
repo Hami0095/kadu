@@ -1,6 +1,6 @@
 {
-  "ruleset_hash": 14702056373420201627,
-  "ruleset_toml": "[meta]\n# Bumped with every deliberate balance/engine change, per\n# tuning/CHANGELOG.md and determinism/README.md's update procedure.\n# The filename (rulesets/2026.1.toml) tracks the ruleset *family*; this\n# tracks the specific revision within it.\nversion = \"2026.5\"\n\n[timing]\ntick_rate            = 60      # ticks per second\nround_ticks          = 3600    # 60 seconds (v0.2 Change 4: 5400 -> 3600; prefer shortening the round over inflating damage - timeouts are a spectator problem before a balance problem)\nintermission_ticks   = 480     # 8 seconds\nopening_freeze_ticks = 90      # inputs discarded during this\nrounds_to_win        = 2       # best of 3\nmax_rounds           = 5\n\n[arena]\narena_width          = 2400    # units\nceiling              = 900\nfighter_height       = 1000\nfighter_width        = 72\nstart_separation     = 600\nstart_separation_jitter = 80   # actual separation drawn uniformly from [start_separation - jitter, + jitter], once per match, from the match seed\n\n[meters]\nvitality             = 1000\nsurge_max            = 300\nguard_max            = 100\n\n[agent]\nobservation_delay    = 4       # ticks the agent's view lags reality\nreflex_interval      = 5       # agents are polled every N ticks\n\n[movement]\ngravity              = 3200    # units per second squared\nwalk_speed           = 340     # units per second\ndash_speed           = 900\ndash_ticks           = 14\njump_velocity        = 1500\n\n[sudden_death]\nticks                = 1800\nvitality              = 250\n\n[passivity]\nwarning_ticks        = 480   # v0.2 Change 3: 300 -> 480 (8s); a penalty everyone pays is a tax, not a penalty\npenalty_fraction_pct = 10      # percent of current vitality subtracted on 2nd warning\n\n[guard_crush]\ncrush_ticks          = 40\nrefill_to            = 50\n\n[throw]\ntech_window_ticks    = 7\n\n[pushback]\n# Pushback is what makes block strings end naturally instead of requiring a\n# frame-data rule to stop them: both fighters separate on block (defender\n# more than attacker), and the defender separates on a clean hit too.\nblock_defender       = 30\nblock_attacker       = 10\nhit_defender         = 20\nhit_attacker         = 0\n\n[frame_data]\n# Moves listed here are allowed to be 0-or-better on block without failing\n# the `kadu frames --check` / CI frame-data gate. Empty by default: every\n# strike should have a real, punishable gap on block. Add a move here only\n# alongside a comment explaining why it's exempt.\nblock_advantage_whitelist = []\n\n[moves.light]\nstartup = 4\nactive = 2\nrecovery = 10   # v0.2 Change 2: 7 -> 10, makes Light -3 on block instead of the +0 infinite block string it was\ndamage = 30\nblock_damage = 6\nhitstun = 12\nblockstun = 8\nguard_damage = 6\nhitstop = 4\n\n[moves.medium]\nstartup = 7\nactive = 3\nrecovery = 14\ndamage = 60\nblock_damage = 12\nhitstun = 18\nblockstun = 12\nguard_damage = 12\nhitstop = 6\n\n[moves.heavy]\nstartup = 12\nactive = 4\nrecovery = 22\ndamage = 100\nblock_damage = 20\nhitstun = 26\nblockstun = 16\nguard_damage = 22\nhitstop = 10\n\n[moves.throw]\nstartup = 5\nactive = 2\nrecovery = 20\ndamage = 120\nhitstop = 8\n\n[combo]\nscaling_pct = [100, 90, 80, 70, 60, 50]\nfloor_pct = 20\nhard_knockdown_hit = 15\n\n[hitboxes]\n# Rectangles are [x_offset, y_offset, width, height] relative to fighter origin (feet, facing-forward-positive x).\n# Standing normals\nlight_hitbox    = [40, 550, 90, 120]\nmedium_hitbox   = [40, 500, 110, 160]\nheavy_hitbox    = [40, 450, 130, 220]\nthrow_hitbox    = [30, 400, 80, 300]\n# Crouching normals (lower)\nlight_hitbox_crouch  = [40, 250, 90, 120]\nmedium_hitbox_crouch = [40, 220, 110, 140]\n# Hurtboxes (six regions), standing\nhurt_head      = [-30, 850, 60, 150]\nhurt_torso     = [-40, 500, 80, 350]\nhurt_arm_left  = [-70, 500, 30, 300]\nhurt_arm_right = [40, 500, 30, 300]\nhurt_leg_left  = [-40, 0, 35, 500]\nhurt_leg_right = [5, 0, 35, 500]\n# Hurtboxes, crouching (compressed vertically)\nhurt_head_crouch      = [-30, 500, 60, 130]\nhurt_torso_crouch     = [-40, 250, 80, 260]\nhurt_arm_left_crouch  = [-70, 250, 30, 220]\nhurt_arm_right_crouch = [40, 250, 30, 220]\nhurt_leg_left_crouch  = [-40, 0, 35, 260]\nhurt_leg_right_crouch = [5, 0, 35, 260]\n",
+  "ruleset_hash": 146009176742458813,
+  "ruleset_toml": "[meta]\n# Bumped with every deliberate balance/engine change, per\n# tuning/CHANGELOG.md and determinism/README.md's update procedure.\n# The filename (rulesets/2026.1.toml) tracks the ruleset *family*; this\n# tracks the specific revision within it.\nversion = \"2026.6\"\n\n[timing]\ntick_rate            = 60      # ticks per second\nround_ticks          = 3600    # 60 seconds (v0.2 Change 4: 5400 -> 3600; prefer shortening the round over inflating damage - timeouts are a spectator problem before a balance problem)\nintermission_ticks   = 480     # 8 seconds\nopening_freeze_ticks = 90      # inputs discarded during this\nrounds_to_win        = 2       # best of 3\nmax_rounds           = 5\n\n[arena]\narena_width          = 2400    # units\nceiling              = 900\nfighter_height       = 1000\nfighter_width        = 72\nstart_separation     = 600\nstart_separation_jitter = 80   # actual separation drawn uniformly from [start_separation - jitter, + jitter], once per match, from the match seed\n\n[meters]\nvitality             = 1000\nsurge_max            = 300\nguard_max            = 100\n\n[agent]\nobservation_delay    = 4       # ticks the agent's view lags reality\nreflex_interval      = 5       # agents are polled every N ticks\n\n[movement]\ngravity              = 3200    # units per second squared\nwalk_speed           = 400     # units per second (v0.2 Change 5: 340 -> 400; walking should be a viable way to close distance, not always dominated by dashing)\ndash_speed           = 700     # v0.2 Change 5: 900 -> 700\ndash_ticks           = 10     # v0.2 Change 5: 14 -> 10; dash distance falls from ~210 to ~117 units, so a dash no longer trivially crosses the whole approach range\njump_velocity        = 1500\n\n[sudden_death]\nticks                = 1800\nvitality              = 250\n\n[passivity]\nwarning_ticks        = 480   # v0.2 Change 3: 300 -> 480 (8s); a penalty everyone pays is a tax, not a penalty\npenalty_fraction_pct = 10      # percent of current vitality subtracted on 2nd warning\n\n[guard_crush]\ncrush_ticks          = 40\nrefill_to            = 50\n\n[throw]\ntech_window_ticks    = 7\n\n[pushback]\n# Pushback is what makes block strings end naturally instead of requiring a\n# frame-data rule to stop them: both fighters separate on block (defender\n# more than attacker), and the defender separates on a clean hit too.\nblock_defender       = 30\nblock_attacker       = 10\nhit_defender         = 20\nhit_attacker         = 0\n\n[frame_data]\n# Moves listed here are allowed to be 0-or-better on block without failing\n# the `kadu frames --check` / CI frame-data gate. Empty by default: every\n# strike should have a real, punishable gap on block. Add a move here only\n# alongside a comment explaining why it's exempt.\nblock_advantage_whitelist = []\n\n[moves.light]\nstartup = 4\nactive = 2\nrecovery = 10   # v0.2 Change 2: 7 -> 10, makes Light -3 on block instead of the +0 infinite block string it was\ndamage = 30\nblock_damage = 6\nhitstun = 12\nblockstun = 8\nguard_damage = 6\nhitstop = 4\n\n[moves.medium]\nstartup = 7\nactive = 3\nrecovery = 14\ndamage = 60\nblock_damage = 12\nhitstun = 18\nblockstun = 12\nguard_damage = 12\nhitstop = 6\n\n[moves.heavy]\nstartup = 12\nactive = 4\nrecovery = 22\ndamage = 100\nblock_damage = 20\nhitstun = 26\nblockstun = 16\nguard_damage = 22\nhitstop = 10\n\n[moves.throw]\nstartup = 5\nactive = 2\nrecovery = 20\ndamage = 120\nhitstop = 8\n\n[combo]\nscaling_pct = [100, 90, 80, 70, 60, 50]\nfloor_pct = 20\nhard_knockdown_hit = 15\n\n[hitboxes]\n# Rectangles are [x_offset, y_offset, width, height] relative to fighter origin (feet, facing-forward-positive x).\n# Standing normals\nlight_hitbox    = [40, 550, 90, 120]\nmedium_hitbox   = [40, 500, 110, 160]\nheavy_hitbox    = [40, 450, 130, 220]\nthrow_hitbox    = [30, 400, 80, 300]\n# Crouching normals (lower)\nlight_hitbox_crouch  = [40, 250, 90, 120]\nmedium_hitbox_crouch = [40, 220, 110, 140]\n# Hurtboxes (six regions), standing\nhurt_head      = [-30, 850, 60, 150]\nhurt_torso     = [-40, 500, 80, 350]\nhurt_arm_left  = [-70, 500, 30, 300]\nhurt_arm_right = [40, 500, 30, 300]\nhurt_leg_left  = [-40, 0, 35, 500]\nhurt_leg_right = [5, 0, 35, 500]\n# Hurtboxes, crouching (compressed vertically)\nhurt_head_crouch      = [-30, 500, 60, 130]\nhurt_torso_crouch     = [-40, 250, 80, 260]\nhurt_arm_left_crouch  = [-70, 250, 30, 220]\nhurt_arm_right_crouch = [40, 250, 30, 220]\nhurt_leg_left_crouch  = [-40, 0, 35, 260]\nhurt_leg_right_crouch = [5, 0, 35, 260]\n",
   "engine_version": "0.2.0",
   "rng_seed": 6,
   "agent_names": [
@@ -858,84 +858,6 @@
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -1150,12 +1072,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -1410,12 +1326,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -1670,12 +1580,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -1970,12 +1874,6 @@
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -2190,12 +2088,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -2450,12 +2342,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -2710,12 +2596,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -3010,12 +2890,6 @@
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -3230,18 +3104,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -3496,12 +3358,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -3796,12 +3652,6 @@
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -4016,12 +3866,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -4276,12 +4120,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -4536,12 +4374,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -4836,12 +4668,6 @@
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -5056,12 +4882,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -5316,12 +5136,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -5576,12 +5390,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -5876,12 +5684,6 @@
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -6096,12 +5898,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -6356,12 +6152,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -6616,12 +6406,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -6916,12 +6700,6 @@
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -7136,12 +6914,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -7396,12 +7168,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -7656,12 +7422,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -7702,12 +7462,6 @@
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -7922,12 +7676,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -8876,68 +8624,56 @@
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
@@ -9105,27 +8841,39 @@
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
@@ -9562,36 +9310,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -10032,52 +9750,68 @@
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
@@ -10249,33 +9983,23 @@
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
@@ -11624,62 +11348,52 @@
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
@@ -11851,23 +11565,39 @@
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
@@ -12304,36 +12034,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -12774,57 +12474,69 @@
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
-      "Block"
+      {
+        "Attack": "Heavy"
+      },
+      "Block"
     ],
     [
       "None",
@@ -12991,36 +12703,30 @@
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
+      "None",
+      "Block"
+    ],
+    [
       {
         "Attack": "Heavy"
       },
@@ -14366,62 +14072,52 @@
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
@@ -14593,23 +14289,39 @@
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
@@ -15046,40 +14758,10 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -15516,56 +15198,68 @@
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
@@ -15733,39 +15427,27 @@
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
@@ -16205,23 +15887,33 @@
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
@@ -18393,103 +18085,219 @@
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      {
         "Move": "Forward"
       },
       "Block"
@@ -18940,12 +18748,24 @@
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
+        "Move": "Forward"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Move": "Forward"
+      },
+      "Block"
+    ],
+    [
+      {
         "Attack": "Heavy"
       },
       "Block"
@@ -18969,7 +18789,9 @@
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
@@ -19157,9 +18979,7 @@
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
@@ -19414,12 +19234,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -19674,12 +19488,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -19934,12 +19742,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -20194,12 +19996,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -20454,12 +20250,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -20714,12 +20504,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -21014,7 +20798,7 @@
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
@@ -21043,9 +20827,7 @@
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
@@ -21233,7 +21015,21 @@
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Move": "Forward"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
@@ -21251,10 +21047,228 @@
     [
       {
         "Move": "Forward"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Attack": "Heavy"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Attack": "Heavy"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Attack": "Heavy"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Attack": "Heavy"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Attack": "Heavy"
       },
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
       "Block"
     ],
     [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
+      "None",
+      "Block"
+    ],
+    [
       {
         "Move": "Forward"
       },
@@ -21286,7 +21300,7 @@
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
@@ -21315,7 +21329,9 @@
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
@@ -21503,9 +21519,7 @@
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
@@ -21760,12 +21774,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -22020,12 +22028,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -22320,12 +22322,6 @@
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -22540,12 +22536,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -22612,10 +22602,6 @@
       {
         "Attack": "Heavy"
       },
-      "Block"
-    ],
-    [
-      "None",
       "Block"
     ],
     [
@@ -22803,9 +22789,7 @@
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
@@ -23060,12 +23044,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -23320,12 +23298,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -23620,12 +23592,6 @@
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -23840,12 +23806,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -24100,12 +24060,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -24360,12 +24314,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -24660,12 +24608,6 @@
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -24880,12 +24822,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -25140,12 +25076,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -25400,12 +25330,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -25700,18 +25624,6 @@
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -25926,12 +25838,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -26186,46 +26092,10 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -27570,62 +27440,52 @@
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
@@ -27797,27 +27657,43 @@
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
       {
+        "Move": "Forward"
+      },
+      "Block"
+    ],
+    [
+      {
         "Attack": "Heavy"
       },
       "Block"
@@ -28250,40 +28126,10 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
         "Attack": "Heavy"
       },
       "Block"
@@ -28720,56 +28566,68 @@
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
@@ -28937,39 +28795,27 @@
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
@@ -29624,6 +29470,12 @@
     ],
     [
       "None",
+      "Block"
+    ],
+    [
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
@@ -30312,62 +30164,52 @@
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
@@ -30539,23 +30381,39 @@
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
@@ -30992,36 +30850,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -31462,56 +31290,68 @@
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
       {
-        "Attack": "Heavy"
+        "Move": "Forward"
       },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Attack": "Heavy"
+      },
       "Block"
     ],
     [
@@ -31679,39 +31519,27 @@
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Move": "Forward"
-      },
+      "None",
       "Block"
     ],
     [
@@ -32366,6 +32194,12 @@
     ],
     [
       "None",
+      "Block"
+    ],
+    [
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
@@ -33054,62 +32888,52 @@
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
       {
-        "Move": "Forward"
+        "Attack": "Heavy"
       },
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
-      {
-        "Attack": "Heavy"
-      },
+      "None",
       "Block"
     ],
     [
@@ -33281,23 +33105,39 @@
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
-      "None",
+      {
+        "Move": "Forward"
+      },
+      "Block"
+    ],
+    [
+      {
+        "Move": "Forward"
+      },
       "Block"
     ],
     [
@@ -33734,42 +33574,6 @@
     ],
     [
       "None",
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
-      "Block"
-    ],
-    [
-      {
-        "Move": "Forward"
-      },
       "Block"
     ],
     [
@@ -34018,6 +33822,10 @@
       {
         "Attack": "Heavy"
       },
+      "Block"
+    ],
+    [
+      "None",
       "Block"
     ],
     [
@@ -34102,5 +33910,5 @@
     "winner": 0,
     "reason": "timeout"
   },
-  "final_state_hash_chain": 4666205127075924008
+  "final_state_hash_chain": 6257682433653718289
 }

@@ -245,3 +245,65 @@ difference — confirmed by rerunning before/after. ruleset_hash still
 updated, since the ruleset content did.
 
 ---
+
+## Change 5 — Build the neutral game
+
+Ruleset: 2026.5 → 2026.6 · Aggregate: `0x8bf709d03f3d7990` → `0x39b769d6bde8d2a3` · ruleset_hash: `0xcc083260757a969b` → `0x0206ba9299ae75bd`
+
+**Hypothesis:** `dash_ticks` 14→10 and `dash_speed` 900→700 (dash distance
+~210 → ~117 units) so a single dash no longer trivially crosses the whole
+approach range; `walk_speed` 340→400 so walking becomes a viable way to
+close distance rather than always being dominated by dashing. Predicted:
+distance buckets 3+4 rise from 7% combined to above 20%, bucket 2 falls
+from 53%.
+
+**Before (Change 4):** distance histogram `[12.6, 27.8, 27.5, 4.0, 21.8, 2.6, 1.3, 1.0]`
+— buckets 3+4 (indices 2+3) already at **31.5%**, bucket 2 (index 1)
+already at **27.8%**
+
+**After:** `[14.4, 27.3, 26.8, 4.7, 20.5, 4.0, 1.4, 0.9]` — buckets 3+4:
+**31.5%** (unchanged to one decimal place), bucket 2: **27.3%**
+(unchanged)
+
+**Verdict: refuted, but only because the prediction's stated baseline
+("7% combined", "53%") was v0.1's, and Change 1 already moved both of
+those numbers most of the way to target four changes ago.** Measured
+against the actual immediately-prior state, Change 5 had no material
+effect on the distance histogram at all. `kadu frames` doesn't apply here
+(this isn't a frame-data question), but the arithmetic is simple: dash
+distance fell as specified, and walking got faster - yet the *macro*
+distribution of where fighters spend their time barely moved, because
+that distribution is dominated by the same handful of deterministic
+pairings (Rusher/Turtle/Spammer/Runner) discussed in Changes 2-4, whose
+scripted policies don't meaningfully change their spacing behaviour just
+because the numbers behind dash/walk changed - Turtle and Runner-past-lead
+still don't move at all, Spammer still never moves, and Rusher still walks
+straight in and then gets stuck reacting to phantoms exactly as before.
+
+What Change 5 *did* move, unexpectedly: **Random's results**, substantially.
+Random's overall win rate dropped from ~57-61% (the highest of any agent,
+every change so far) to **48.5%** — now *lower* than both Rusher (54.5%)
+and Spammer (50.9%), the first time that's happened in this milestone.
+Spammer-vs-Random fell 96.5-98% → 81.0%; Random-vs-Runner collapsed from
+64.5-83% → **17.5%**. Random is the only agent that actually samples dash
+and jump intents, so it's the only agent whose behaviour was structurally
+capable of responding to a dash/walk retune - and it responded a lot. This
+is a real, measurable finding, just not the one that was predicted: v0.2's
+movement changes reshaped *Random's* game more than they reshaped the
+neutral game between the scripted, deterministic agents, which remains
+governed entirely by their fixed policies rather than by spacing.
+
+Bench aggregate changed as expected (`0x8bf709d03f3d7990` →
+`0x39b769d6bde8d2a3`) - noted here because this measurement initially
+came back byte-identical to Change 4's on a first pass, which given a real
+walk-speed change affecting Rusher's approach timing every tick should be
+essentially impossible. Root cause: `cargo run --example gen_corpus`
+rebuilds `kadu-core` (and relinks the example binary) but does **not**
+relink `target/release/kadu.exe`, so the bench command ran against a stale
+binary still embedding Change 4's ruleset. Re-ran `cargo build --release
+-p kadu-cli` explicitly before bench and got the real number. Worth
+recording as a process note: every future change's measurement step must
+rebuild the CLI binary itself, not just whatever cargo target happens to
+touch kadu-core.
+
+---
