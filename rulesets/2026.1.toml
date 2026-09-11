@@ -1,3 +1,10 @@
+[meta]
+# Bumped with every deliberate balance/engine change, per
+# tuning/CHANGELOG.md and determinism/README.md's update procedure.
+# The filename (rulesets/2026.1.toml) tracks the ruleset *family*; this
+# tracks the specific revision within it.
+version = "2026.2"
+
 [timing]
 tick_rate            = 60      # ticks per second
 round_ticks          = 5400    # 90 seconds
@@ -12,6 +19,7 @@ ceiling              = 900
 fighter_height       = 1000
 fighter_width        = 72
 start_separation     = 600
+start_separation_jitter = 80   # actual separation drawn uniformly from [start_separation - jitter, + jitter], once per match, from the match seed
 
 [meters]
 vitality             = 1000

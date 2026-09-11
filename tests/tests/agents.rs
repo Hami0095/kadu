@@ -89,7 +89,7 @@ fn play_match(mut agent_a: Box<dyn Agent>, mut agent_b: Box<dyn Agent>, ruleset:
 fn turtle_gets_guard_crushed() {
     // Both agents are stationary by design, so start them close enough for
     // Spammer's Light to actually reach Turtle without either one moving.
-    let rs = ruleset_with(&[("start_separation     = 600", "start_separation     = 120")]);
+    let rs = ruleset_with(&[("start_separation     = 600", "start_separation     = 120"), ("start_separation_jitter = 80", "start_separation_jitter = 0")]);
     let n = 100;
     let mut turtle_wins = 0;
     let mut matches_with_crush = 0;
@@ -145,7 +145,7 @@ fn spammer_combos_are_capped() {
     // This test therefore asserts what's actually true: the cap is never
     // exceeded, and damage scaling is internally consistent for whatever
     // combo depth does occur, rather than assuming deep combos happen.
-    let rs = ruleset_with(&[("start_separation     = 600", "start_separation     = 120")]);
+    let rs = ruleset_with(&[("start_separation     = 600", "start_separation     = 120"), ("start_separation_jitter = 80", "start_separation_jitter = 0")]);
     let n = 100;
     let mut max_combo_seen = 0u8;
 

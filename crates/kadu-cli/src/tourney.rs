@@ -61,8 +61,15 @@ struct PairCellOut {
     draw_pct: f64,
 }
 
+/// The Codex mirror rule: cell (i, j) and its mirror (j, i) must be the
+/// same underlying match, replayed with sides swapped - same starting
+/// separation draw, same everything except which agent occupies which
+/// slot - not just two independently-seeded samples that happen to
+/// average out. Symmetric in (i, j) (sorted before hashing) so both
+/// directions of a pairing share one seed at each repeat index.
 fn pairing_seed(base_seed: u64, i: usize, j: usize, k: u32) -> u64 {
-    base_seed ^ ((i as u64) << 40) ^ ((j as u64) << 20) ^ (k as u64)
+    let (lo, hi) = if i <= j { (i, j) } else { (j, i) };
+    base_seed ^ ((lo as u64) << 40) ^ ((hi as u64) << 20) ^ (k as u64)
 }
 
 pub fn cmd_tourney(args: &[String]) {

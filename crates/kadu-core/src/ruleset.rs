@@ -8,6 +8,12 @@ use crate::hash::Fnv1a;
 use serde::Deserialize;
 use std::fmt;
 
+#[derive(Debug, Deserialize, Clone, Default)]
+struct RawMeta {
+    #[serde(default)]
+    version: String,
+}
+
 #[derive(Debug, Deserialize, Clone)]
 struct RawTiming {
     tick_rate: i32,
@@ -25,6 +31,8 @@ struct RawArena {
     fighter_height: i32,
     fighter_width: i32,
     start_separation: i32,
+    #[serde(default)]
+    start_separation_jitter: i32,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -148,6 +156,8 @@ struct RawRuleset {
     hitboxes: RawHitboxes,
     #[serde(default)]
     frame_data: RawFrameData,
+    #[serde(default)]
+    meta: RawMeta,
 }
 
 #[derive(Debug, Clone)]
@@ -185,6 +195,13 @@ pub struct Ruleset {
     pub fighter_height: Fixed,
     pub fighter_width: Fixed,
     pub start_separation: Fixed,
+    /// Half-width of the range the actual starting separation is drawn
+    /// from, uniformly, once per match, from the match seed.
+    pub start_separation_jitter: i32,
+
+    /// This ruleset revision's version label (e.g. "2026.2"), bumped with
+    /// every deliberate balance/engine change. See tuning/CHANGELOG.md.
+    pub version: String,
 
     pub vitality: i32,
     pub surge_max: i32,
@@ -305,6 +322,8 @@ impl Ruleset {
             fighter_height: Fixed::from_int(raw.arena.fighter_height),
             fighter_width: Fixed::from_int(raw.arena.fighter_width),
             start_separation: Fixed::from_int(raw.arena.start_separation),
+            start_separation_jitter: raw.arena.start_separation_jitter,
+            version: raw.meta.version.clone(),
 
             vitality: raw.meters.vitality,
             surge_max: raw.meters.surge_max,
@@ -390,6 +409,8 @@ impl Ruleset {
         h.write_i32(self.fighter_height.raw());
         h.write_i32(self.fighter_width.raw());
         h.write_i32(self.start_separation.raw());
+        h.write_i32(self.start_separation_jitter);
+        h.write_bytes(self.version.as_bytes());
         hi!(self.vitality);
         hi!(self.surge_max);
         hi!(self.guard_max);

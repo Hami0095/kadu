@@ -79,6 +79,14 @@ pub struct Sim {
     passive_min_distance: Fixed,
     passive_tracked_fighter: Option<usize>,
 
+    /// Drawn once from the match seed in `new()` (see START_SEPARATION_JITTER
+    /// below) and reused for every round's reset. v0.1's tournament found
+    /// the seed changed nothing: no agent but Random uses randomness, and
+    /// nothing in the sim itself consumed the PRNG, so every pairing played
+    /// one identical match `repeats` times. This is the fix - the sim's own
+    /// owned PRNG now actually gets used for something.
+    start_separation: Fixed,
+
     #[cfg(feature = "trace-hashes")]
     tick_hashes: Vec<u64>,
 }
@@ -90,14 +98,24 @@ pub const TRACE_HASHES_ENABLED: bool = cfg!(feature = "trace-hashes");
 
 impl Sim {
     pub fn new(ruleset: Ruleset, seed: u64) -> Sim {
-        let half_sep = ruleset.start_separation / Fixed::from_int(2);
+        let mut rng = Pcg32::new(seed, 1);
+        let base_separation = ruleset.start_separation.to_int();
+        let jitter = ruleset.start_separation_jitter;
+        let start_separation = if jitter <= 0 {
+            Fixed::from_int(base_separation)
+        } else {
+            let span = (2 * jitter + 1) as u32;
+            Fixed::from_int(base_separation - jitter + rng.next_bounded(span) as i32)
+        };
+
+        let half_sep = start_separation / Fixed::from_int(2);
         let center = ruleset.arena_width / Fixed::from_int(2);
         let f0 = Fighter::new(Vec2::new(center - half_sep, Fixed::ZERO), Facing::Right, ruleset.vitality, ruleset.guard_max);
         let f1 = Fighter::new(Vec2::new(center + half_sep, Fixed::ZERO), Facing::Left, ruleset.vitality, ruleset.guard_max);
         let opening_freeze = ruleset.opening_freeze_ticks;
         let round_ticks = ruleset.round_ticks;
         let mut sim = Sim {
-            rng: Pcg32::new(seed, 1),
+            rng,
             fighters: [f0, f1],
             phase: Phase::Freeze { ticks_left: opening_freeze },
             round: 1,
@@ -110,6 +128,7 @@ impl Sim {
             passive_ticks: 0,
             passive_min_distance: Fixed::ZERO,
             passive_tracked_fighter: None,
+            start_separation,
             #[cfg(feature = "trace-hashes")]
             tick_hashes: Vec::new(),
             ruleset,
@@ -396,7 +415,7 @@ impl Sim {
     }
 
     fn begin_next_round(&mut self) -> Phase {
-        let half_sep = self.ruleset.start_separation / Fixed::from_int(2);
+        let half_sep = self.start_separation / Fixed::from_int(2);
         let center = self.ruleset.arena_width / Fixed::from_int(2);
         let vitality = if self.sudden_death { self.ruleset.sudden_death_vitality } else { self.ruleset.vitality };
         for (i, f) in self.fighters.iter_mut().enumerate() {

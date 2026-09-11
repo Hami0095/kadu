@@ -130,6 +130,7 @@ fn simultaneous_lethal_trade_is_a_double_ko() {
     let rs = ruleset_with(&[
         ("vitality             = 1000", "vitality             = 50"),
         ("start_separation     = 600", "start_separation     = 100"),
+        ("start_separation_jitter = 80", "start_separation_jitter = 0"),
     ]);
     let mut sim = Sim::new(rs, 3);
     let mut round_ended = None;

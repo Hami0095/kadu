@@ -114,6 +114,7 @@ fn main() {
         let (rs, toml) = ruleset_with(&[
             ("vitality             = 1000", "vitality             = 50"),
             ("start_separation     = 600", "start_separation     = 100"),
+            ("start_separation_jitter = 80", "start_separation_jitter = 0"),
             ("max_rounds           = 5", "max_rounds           = 1"),
         ]);
         let mut rec = Recorder::new(rs, toml, 3, "trader", "trader");
