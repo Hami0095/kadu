@@ -81,6 +81,18 @@ struct RawThrow {
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]
+struct RawPushback {
+    #[serde(default)]
+    block_defender: i32,
+    #[serde(default)]
+    block_attacker: i32,
+    #[serde(default)]
+    hit_defender: i32,
+    #[serde(default)]
+    hit_attacker: i32,
+}
+
+#[derive(Debug, Deserialize, Clone, Default)]
 struct RawFrameData {
     #[serde(default)]
     block_advantage_whitelist: Vec<String>,
@@ -158,6 +170,8 @@ struct RawRuleset {
     frame_data: RawFrameData,
     #[serde(default)]
     meta: RawMeta,
+    #[serde(default)]
+    pushback: RawPushback,
 }
 
 #[derive(Debug, Clone)]
@@ -202,6 +216,11 @@ pub struct Ruleset {
     /// This ruleset revision's version label (e.g. "2026.2"), bumped with
     /// every deliberate balance/engine change. See tuning/CHANGELOG.md.
     pub version: String,
+
+    pub pushback_block_defender: Fixed,
+    pub pushback_block_attacker: Fixed,
+    pub pushback_hit_defender: Fixed,
+    pub pushback_hit_attacker: Fixed,
 
     pub vitality: i32,
     pub surge_max: i32,
@@ -324,6 +343,10 @@ impl Ruleset {
             start_separation: Fixed::from_int(raw.arena.start_separation),
             start_separation_jitter: raw.arena.start_separation_jitter,
             version: raw.meta.version.clone(),
+            pushback_block_defender: Fixed::from_int(raw.pushback.block_defender),
+            pushback_block_attacker: Fixed::from_int(raw.pushback.block_attacker),
+            pushback_hit_defender: Fixed::from_int(raw.pushback.hit_defender),
+            pushback_hit_attacker: Fixed::from_int(raw.pushback.hit_attacker),
 
             vitality: raw.meters.vitality,
             surge_max: raw.meters.surge_max,
@@ -411,6 +434,10 @@ impl Ruleset {
         h.write_i32(self.start_separation.raw());
         h.write_i32(self.start_separation_jitter);
         h.write_bytes(self.version.as_bytes());
+        h.write_i32(self.pushback_block_defender.raw());
+        h.write_i32(self.pushback_block_attacker.raw());
+        h.write_i32(self.pushback_hit_defender.raw());
+        h.write_i32(self.pushback_hit_attacker.raw());
         hi!(self.vitality);
         hi!(self.surge_max);
         hi!(self.guard_max);

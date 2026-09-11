@@ -73,6 +73,25 @@ pub struct RoundWarnLog {
     pub second_warning: bool,
 }
 
+/// Pushes attacker and defender apart along the line already connecting
+/// them (defender moves `defender_push` away from the attacker, attacker
+/// moves `attacker_push` away from the defender), clamped to the arena
+/// walls. This is what makes block strings end naturally instead of
+/// requiring a frame-data rule to stop them.
+fn apply_pushback(fighters: &mut [Fighter; 2], rs: &Ruleset, attacker: usize, defender: usize, defender_push: crate::fixed::Fixed, attacker_push: crate::fixed::Fixed) {
+    use crate::fixed::Fixed;
+    let dir = if fighters[defender].position.x >= fighters[attacker].position.x { Fixed::ONE } else { -Fixed::ONE };
+    fighters[defender].position.x = fighters[defender].position.x + dir * defender_push;
+    fighters[attacker].position.x = fighters[attacker].position.x - dir * attacker_push;
+
+    let half_w = rs.fighter_width / Fixed::from_int(2);
+    let min_x = half_w;
+    let max_x = rs.arena_width - half_w;
+    for idx in [attacker, defender] {
+        fighters[idx].position.x = fighters[idx].position.x.clamp(min_x, max_x);
+    }
+}
+
 /// Phases 5 and 6: resolve every active hitbox against every opposing
 /// hurtbox from a pre-damage snapshot, then apply damage, guard, surge,
 /// hitstun/blockstun, hitstop and combo scaling.
@@ -162,6 +181,7 @@ pub fn resolve(fighters: &mut [Fighter; 2], rs: &Ruleset, tick: u32) -> Vec<HitL
                 fighters[j].stun_ticks_target = spec.blockstun;
                 fighters[j].enter_state(FighterState::BlockStun);
             }
+            apply_pushback(fighters, rs, i, j, rs.pushback_block_defender, rs.pushback_block_attacker);
             logs.push(HitLog { attacker_idx: i, defender_idx: j, blocked: true, damage: chip, hard_knockdown: false, is_throw: false, kind: Some(kind), is_tech: false });
         } else {
             let hit_number = fighters[j].combo_count as usize;
@@ -191,6 +211,7 @@ pub fn resolve(fighters: &mut [Fighter; 2], rs: &Ruleset, tick: u32) -> Vec<HitL
                 fighters[j].stun_ticks_target = spec.hitstun;
                 fighters[j].enter_state(FighterState::HitStun);
             }
+            apply_pushback(fighters, rs, i, j, rs.pushback_hit_defender, rs.pushback_hit_attacker);
             logs.push(HitLog { attacker_idx: i, defender_idx: j, blocked: false, damage: dmg, hard_knockdown, is_throw: false, kind: Some(kind), is_tech: false });
         }
     }

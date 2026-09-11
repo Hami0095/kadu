@@ -3,7 +3,7 @@
 # tuning/CHANGELOG.md and determinism/README.md's update procedure.
 # The filename (rulesets/2026.1.toml) tracks the ruleset *family*; this
 # tracks the specific revision within it.
-version = "2026.2"
+version = "2026.3"
 
 [timing]
 tick_rate            = 60      # ticks per second
@@ -52,6 +52,15 @@ refill_to            = 50
 [throw]
 tech_window_ticks    = 7
 
+[pushback]
+# Pushback is what makes block strings end naturally instead of requiring a
+# frame-data rule to stop them: both fighters separate on block (defender
+# more than attacker), and the defender separates on a clean hit too.
+block_defender       = 30
+block_attacker       = 10
+hit_defender         = 20
+hit_attacker         = 0
+
 [frame_data]
 # Moves listed here are allowed to be 0-or-better on block without failing
 # the `kadu frames --check` / CI frame-data gate. Empty by default: every
@@ -62,7 +71,7 @@ block_advantage_whitelist = []
 [moves.light]
 startup = 4
 active = 2
-recovery = 7
+recovery = 10   # v0.2 Change 2: 7 -> 10, makes Light -3 on block instead of the +0 infinite block string it was
 damage = 30
 block_damage = 6
 hitstun = 12

@@ -108,13 +108,22 @@ pub fn check_violations(rows: &[FrameRow]) -> Vec<String> {
 mod tests {
     use super::*;
     use kadu_core::default_ruleset;
+    use kadu_core::ruleset::{Ruleset, DEFAULT_RULESET_TOML};
 
-    /// The known values the build prompt itself quotes: "Light 0, Medium
-    /// -4, Heavy -9 on block." If this test fails, the tool is wrong, not
-    /// the table.
+    /// The build prompt's own known values for v0's *original* Light frame
+    /// data (startup 4/active 2/recovery 7): "Light 0, Medium -4, Heavy -9
+    /// on block." Verified against a reconstructed original-Light ruleset
+    /// rather than the shipped default, since v0.2 Change 2 deliberately
+    /// moves Light's recovery (see below) - if this test ever fails, the
+    /// formula is wrong, not the table.
     #[test]
-    fn reproduces_known_block_advantage_values() {
-        let rs = default_ruleset();
+    fn reproduces_known_block_advantage_values_for_original_light() {
+        let s = DEFAULT_RULESET_TOML.replace(
+            "recovery = 10   # v0.2 Change 2: 7 -> 10, makes Light -3 on block instead of the +0 infinite block string it was",
+            "recovery = 7",
+        );
+        assert_ne!(s, DEFAULT_RULESET_TOML, "expected to find and replace Light's recovery line");
+        let rs = Ruleset::from_toml_str(&s).unwrap();
         let rows = compute(&rs);
         let by_name = |name: &str| rows.iter().find(|r| r.name == name).unwrap();
         assert_eq!(by_name("light").advantage_on_block, Some(0));
@@ -122,11 +131,13 @@ mod tests {
         assert_eq!(by_name("heavy").advantage_on_block, Some(-9));
     }
 
+    /// v0.2 Change 2: Light's recovery moved from 7 to 10 specifically to
+    /// fix the +0-on-block infinite block string kadu frames --check first
+    /// caught. The shipped ruleset must never regress to non-negative.
     #[test]
-    fn light_is_flagged_as_a_violation_before_change_2() {
+    fn light_is_no_longer_a_violation_after_change_2() {
         let rs = default_ruleset();
         let rows = compute(&rs);
-        let violations = check_violations(&rows);
-        assert!(violations.iter().any(|v| v.starts_with("light")), "expected light to violate the non-negative-on-block gate: {violations:?}");
+        assert_eq!(check_violations(&rows), Vec::<String>::new());
     }
 }

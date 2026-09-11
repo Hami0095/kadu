@@ -81,3 +81,73 @@ exploit doesn't become fair by moving the starting line. Change 2 is that
 fix, not a new investigation.
 
 ---
+
+## Change 2 — Fix Light: recovery 7 → 10, pushback added
+
+Ruleset: 2026.2 → 2026.3 · Aggregate: `0xfde8d169a7049322` → `0x8bf709d03f3d7990`
+
+**Hypothesis:** Light's recovery moving from 7 to 10 makes it −3 on block
+instead of +0 (verified directly with `kadu frames --check`, which now
+passes). Adding pushback (defender +30/attacker +10 on block, defender +20
+on hit) should make block strings end naturally. Predicted: Spammer stops
+beating Rusher 100%, Guard Crushes fall from 57/100 rounds toward 15–25,
+damage per round *rises* (fighters aren't locked in chip-only block strings
+anymore), Double KO falls.
+
+**Before:**
+- spammer vs rusher: 100.0% · Guard Crushes 57.0/100 rounds · damage/bout 2065
+- double_ko 13.6% of rounds
+
+**After:**
+- spammer vs rusher: **still 100.0%** · Guard Crushes **56.0**/100 rounds
+  (essentially unchanged) · damage/bout **2054** (essentially unchanged,
+  not risen) · double_ko **13.4%** (essentially unchanged)
+- Timeouts actually *rose*, 54.5% → 57.7%; mean round duration rose too
+  (64.5s → 67.4s)
+- Turtle's win rate against Random rose (1.4% → 3.8%; turtle-vs-random cell
+  92.0% → 77.5%), and Spammer-vs-Random dropped (≈99.5% implied → 90.5%) —
+  the only agents whose *own decisions* are non-deterministic are the ones
+  whose numbers moved at all
+
+**Verdict: refuted, and the reason is worth more than the number.**
+
+`kadu frames --check` confirms the frame-data fix is real: Light is
+genuinely −3 on block now, not the infinite block string it was. So why
+does Spammer still beat Rusher every single time?
+
+Traced it with `kadu diverge`-style manual inspection of a replay: Rusher's
+own script is `if obs.opponent.state == AttackStartup { Block } else if
+distance <= 140 { Attack } else { Move(Forward) }`. Spammer presses Light
+literally every poll, so its state cycles startup→active→recovery→startup
+with no gap — meaning Rusher observes `AttackStartup` on nearly every
+reflex poll, *regardless of actual distance*, and its condition has no
+range check. The first blocked Light pushes Rusher back 30 units and
+Spammer back 10; the gap that opens is now real (Change 2 did that part
+correctly) — but Rusher never walks back in, because it's permanently
+stuck in the `Block` branch reacting to a threat that, past a certain
+separation, can no longer even reach it. Spammer keeps swinging into empty
+air while Rusher blocks phantoms, the round times out, and whoever holds
+the small chip-damage lead from the handful of hits that landed before
+separation wins — deterministically, every seed, for the same reason as
+before Change 2, just via timeout instead of an infinite block string.
+
+This is not an engine bug. It's a fixed v0 test-fixture agent's scripted
+policy having no "the threat that made me block is now out of range, stop
+blocking and close back in" logic — a gap Change 2's frame-data fix was
+never going to touch, because it lives entirely in Rusher's own `decide()`,
+not in the simulation. Out of scope to patch here (Rusher is a fixed test
+fixture, not something v0.2 tunes); flagged for whoever next revisits the
+scripted agents. It also explains why the *aggregate* tournament numbers
+(damage/round, Guard Crushes, double KO) barely moved: they're dominated by
+a handful of these same deterministic pairings resolving the same way as
+before through a different specific mechanism, not by anything Change 2
+could reach.
+
+One more honest number: bench throughput dropped from ~630-670 matches/sec
+(v0.1/Change 1) to a stable ~505-520 matches/sec — still comfortably above
+the 500/sec/core target, but with less headroom. The extra pushback
+arithmetic (two position updates + wall-clamp per landed hit) is real,
+measurable cost, not noise (confirmed across three separate clean runs with
+no other load on the machine).
+
+---

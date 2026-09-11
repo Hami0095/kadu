@@ -87,15 +87,21 @@ fn play_match(mut agent_a: Box<dyn Agent>, mut agent_b: Box<dyn Agent>, ruleset:
 
 #[test]
 fn turtle_gets_guard_crushed() {
-    // Both agents are stationary by design, so start them close enough for
-    // Spammer's Light to actually reach Turtle without either one moving.
+    // v0.2 Change 2 added pushback on block, specifically so block strings
+    // end naturally. A fully stationary attacker (Spammer) now separates
+    // from a stationary Turtle after a handful of blocked hits and can
+    // never re-close - by design, that's the fix working, not a bug - so
+    // this falsification needs an attacker who actually walks back in
+    // (Rusher) to keep pressuring a turtling opponent over a full round,
+    // which is the realistic scenario the anti-turtling rule has to hold
+    // up against.
     let rs = ruleset_with(&[("start_separation     = 600", "start_separation     = 120"), ("start_separation_jitter = 80", "start_separation_jitter = 0")]);
     let n = 100;
     let mut turtle_wins = 0;
     let mut matches_with_crush = 0;
 
     for seed in 0..n {
-        let summary = play_match(Box::new(Turtle::new()), Box::new(Spammer), rs.clone(), seed);
+        let summary = play_match(Box::new(Turtle::new()), Box::new(Rusher::new()), rs.clone(), seed);
         if summary.guard_crushes_a > 0 {
             matches_with_crush += 1;
         }
