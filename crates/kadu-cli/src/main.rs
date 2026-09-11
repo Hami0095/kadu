@@ -1,3 +1,4 @@
+mod frames;
 mod stats;
 mod tourney;
 
@@ -489,10 +490,49 @@ fn cmd_diverge(args: &[String]) {
     print_fighter_diff("P2", &a1_at, &b1_at);
 }
 
+fn cmd_frames(args: &[String]) {
+    let mut ruleset_path: Option<String> = None;
+    let mut check = false;
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--ruleset" => {
+                ruleset_path = Some(args[i + 1].clone());
+                i += 2;
+            }
+            "--check" => {
+                check = true;
+                i += 1;
+            }
+            other => {
+                eprintln!("unknown argument '{other}'");
+                i += 1;
+            }
+        }
+    }
+
+    let (ruleset, _) = load_ruleset(ruleset_path.as_deref());
+    let rows = frames::compute(&ruleset);
+    frames::print_table(&rows);
+
+    if check {
+        let violations = frames::check_violations(&rows);
+        if violations.is_empty() {
+            println!("\nOK: no move is non-negative on block (or all such moves are whitelisted).");
+        } else {
+            println!();
+            for v in &violations {
+                eprintln!("FAIL: {v}");
+            }
+            std::process::exit(1);
+        }
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Some(cmd) = args.first() else {
-        eprintln!("usage: kadu <run|verify|bench|watch|diverge|tourney> [args]");
+        eprintln!("usage: kadu <run|verify|bench|watch|diverge|tourney|frames> [args]");
         std::process::exit(2);
     };
     let rest = &args[1..];
@@ -503,6 +543,7 @@ fn main() {
         "watch" => cmd_watch(rest),
         "diverge" => cmd_diverge(rest),
         "tourney" => tourney::cmd_tourney(rest),
+        "frames" => cmd_frames(rest),
         other => {
             eprintln!("unknown command '{other}'. usage: kadu <run|verify|bench|watch|diverge|tourney> [args]");
             std::process::exit(2);

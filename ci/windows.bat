@@ -30,6 +30,10 @@ echo --- cargo build --release ---
 cargo build --release -p kadu-cli --locked
 if errorlevel 1 exit /b 1
 
+echo --- kadu frames --check (no move may be non-negative on block, unless whitelisted) ---
+target\release\kadu.exe frames --check
+if errorlevel 1 exit /b 1
+
 echo --- kadu bench (checked against determinism\expected.toml) ---
 target\release\kadu.exe bench --matches 10000 --seed 1 --expect determinism\expected.toml
 if errorlevel 1 exit /b 1

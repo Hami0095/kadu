@@ -33,6 +33,13 @@ jobs:
       - name: cargo build --release
         run: cargo build --release -p kadu-cli --locked
 
+      - name: kadu frames --check (no move may be non-negative on block, unless whitelisted)
+        shell: bash
+        run: |
+          BIN=./target/release/kadu
+          if [ -f "${BIN}.exe" ]; then BIN="${BIN}.exe"; fi
+          "$BIN" frames --check
+
       - name: kadu bench --matches 10000 --seed 1 (checked against determinism/expected.toml)
         shell: bash
         run: |

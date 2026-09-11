@@ -13,6 +13,18 @@
 //     relabeled Windows build. Logic lives in ci/linux.sh, run inside
 //     the container so no fragile cmd.exe/bash nested-quoting is needed
 //     in this file.
+//   - "aarch64 (Linux, QEMU)" runs the same ci/linux.sh inside the same
+//     rust:1-bookworm image, but with `--platform linux/arm64`. Docker
+//     Desktop's WSL2 backend has binfmt/QEMU support built in - confirmed
+//     with a plain `uname -a` before wiring this up - so this is a genuine
+//     second CPU architecture, just an emulated one (expect 10-20x slower;
+//     a ~15s native bench becomes a few minutes).
+//   - "wasm32 (Node)" builds kadu-wasm-check for wasm32-unknown-unknown and
+//     runs its bench under Node, asserting the aggregate against
+//     determinism/expected.toml. This is the strongest of the four legs:
+//     it's the only one that exercises a genuinely different code
+//     generator (rustc's wasm32 backend + V8's JIT), not just a different
+//     OS on the same x86_64/LLVM path as the other three.
 //   - "macOS (ARM64)" is NOT run here: there is no Apple hardware, VM, or
 //     cloud Mac agent available in this environment, and Docker cannot
 //     legally or technically run macOS containers. This stage is left in
@@ -38,6 +50,19 @@ pipeline {
                     }
                     steps {
                         bat 'ci\\windows.bat'
+                    }
+                }
+                stage('Linux (aarch64, QEMU)') {
+                    agent { label 'built-in' }
+                    steps {
+                        bat 'docker run --rm --platform linux/arm64 -v "%WORKSPACE%":/work -w /work rust:1-bookworm bash ci/linux.sh'
+                    }
+                }
+                stage('wasm32 (Node)') {
+                    agent { label 'built-in' }
+                    steps {
+                        bat 'cargo build --release --target wasm32-unknown-unknown -p kadu-wasm-check --locked'
+                        bat 'node crates\\kadu-wasm-check\\run.js 10000 1 --expect determinism\\expected.toml'
                     }
                 }
                 stage('macOS (ARM64) - unavailable here') {

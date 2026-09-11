@@ -19,6 +19,9 @@ cargo test -p kadu-core no_float_lint -- --nocapture
 echo "--- cargo build --release ---"
 cargo build --release -p kadu-cli --locked
 
+echo "--- kadu frames --check (no move may be non-negative on block, unless whitelisted) ---"
+./target/release/kadu frames --check
+
 echo "--- kadu bench (checked against determinism/expected.toml) ---"
 ./target/release/kadu bench --matches 10000 --seed 1 --expect determinism/expected.toml
 

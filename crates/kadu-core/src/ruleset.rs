@@ -72,6 +72,12 @@ struct RawThrow {
     tech_window_ticks: i32,
 }
 
+#[derive(Debug, Deserialize, Clone, Default)]
+struct RawFrameData {
+    #[serde(default)]
+    block_advantage_whitelist: Vec<String>,
+}
+
 #[derive(Debug, Deserialize, Clone)]
 struct RawMove {
     startup: i32,
@@ -140,6 +146,8 @@ struct RawRuleset {
     moves: RawMoves,
     combo: RawCombo,
     hitboxes: RawHitboxes,
+    #[serde(default)]
+    frame_data: RawFrameData,
 }
 
 #[derive(Debug, Clone)]
@@ -211,6 +219,11 @@ pub struct Ruleset {
     pub combo_scaling_pct: Vec<i32>,
     pub combo_floor_pct: i32,
     pub combo_hard_knockdown_hit: u8,
+
+    /// Move names (lowercase: "light"/"medium"/"heavy") exempt from the
+    /// non-negative-on-block CI gate. Should stay empty; a whitelisted
+    /// entry needs an adjacent TOML comment explaining why.
+    pub block_advantage_whitelist: Vec<String>,
 
     pub light_hitbox: Rect,
     pub medium_hitbox: Rect,
@@ -325,6 +338,7 @@ impl Ruleset {
             combo_scaling_pct: raw.combo.scaling_pct.clone(),
             combo_floor_pct: raw.combo.floor_pct,
             combo_hard_knockdown_hit: raw.combo.hard_knockdown_hit as u8,
+            block_advantage_whitelist: raw.frame_data.block_advantage_whitelist.clone(),
 
             light_hitbox: rect_from(raw.hitboxes.light_hitbox),
             medium_hitbox: rect_from(raw.hitboxes.medium_hitbox),
@@ -409,6 +423,9 @@ impl Ruleset {
         }
         hi!(self.combo_floor_pct);
         hi!(self.combo_hard_knockdown_hit);
+        for w in &self.block_advantage_whitelist {
+            h.write_bytes(w.as_bytes());
+        }
         h.finish()
     }
 }
