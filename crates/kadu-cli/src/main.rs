@@ -6,12 +6,12 @@ use std::fmt::Write as _;
 use std::fs;
 use std::time::Instant;
 
-use kadu_agent::{Agent, Dummy, Random, Runner, Rusher, Spammer, Turtle};
+use kadu_agent::{Agent, Dummy, Random, Runner, Rusher, Spacer, Spammer, Turtle};
 use kadu_core::ruleset::DEFAULT_RULESET_TOML;
 use kadu_core::{default_ruleset, Facing, FighterState, FighterView, Intent, Ruleset, Sim};
 use kadu_replay::{from_json, to_json, verify as verify_replay, Recorder, Replay};
 
-pub const AGENT_NAMES: &[&str] = &["dummy", "rusher", "turtle", "runner", "spammer", "random"];
+pub const AGENT_NAMES: &[&str] = &["dummy", "rusher", "turtle", "runner", "spammer", "random", "spacer"];
 
 fn make_agent(name: &str, match_seed: u64, slot: usize) -> Box<dyn Agent> {
     match name {
@@ -21,6 +21,7 @@ fn make_agent(name: &str, match_seed: u64, slot: usize) -> Box<dyn Agent> {
         "runner" => Box::new(Runner::new()),
         "spammer" => Box::new(Spammer),
         "random" => Box::new(Random::new(match_seed, slot)),
+        "spacer" => Box::new(Spacer::new()),
         other => {
             eprintln!("unknown agent '{other}', falling back to dummy");
             Box::new(Dummy)

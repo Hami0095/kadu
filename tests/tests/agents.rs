@@ -8,7 +8,7 @@
 //! *default* starting distance is exactly the question the v0.1 tournament
 //! report (Task 5) answers, not something these per-rule unit tests decide.
 
-use kadu_agent::{Agent, Dummy, Random, Runner, Rusher, Spammer, Turtle};
+use kadu_agent::{Agent, Dummy, Random, Runner, Rusher, Spacer, Spammer, Turtle};
 use kadu_core::ruleset::{Ruleset, DEFAULT_RULESET_TOML};
 use kadu_core::{default_ruleset, FighterState, Intent, Sim};
 
@@ -209,4 +209,27 @@ fn random_beats_dummy() {
     }
     let rate = random_wins as f64 / n as f64;
     assert!(rate > 0.90, "Random win rate against Dummy was {rate:.2}, expected > 90% (any agent should crush a no-op opponent)");
+}
+
+/// v0.2's design-thesis test, made executable: does a spacing-based agent
+/// beat Spammer once the neutral game exists (Change 5)? Currently it does
+/// not - lost 0/200 in the full tournament, per tuning/CHANGELOG.md's
+/// "Spacer agent" entry (reactive whiff-punishing can't out-pace an
+/// attacker whose loop period is shorter than the game's own
+/// observation_delay + reflex_interval latency). This test documents that
+/// finding as a fact to notice if it ever changes, not a target to defend -
+/// if it starts passing, that's good news worth updating this comment for;
+/// if it stays failing, it's tracking known, understood behaviour.
+#[test]
+fn spacer_currently_loses_to_spammer() {
+    let n = 100;
+    let mut spacer_wins = 0;
+    for seed in 0..n {
+        let summary = play_match(Box::new(Spacer::new()), Box::new(Spammer), default_ruleset(), seed);
+        if summary.winner == Some(0) {
+            spacer_wins += 1;
+        }
+    }
+    let rate = spacer_wins as f64 / n as f64;
+    assert_eq!(rate, 0.0, "Spacer's win rate against Spammer moved from the documented 0% to {rate:.2} - if this is a real improvement, update tuning/CHANGELOG.md's Spacer entry to match, don't just widen this assertion.");
 }

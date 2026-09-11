@@ -241,3 +241,70 @@ impl Agent for Random {
         // resetting it would be.
     }
 }
+
+/// v0.2 Change 5's payoff, not a v0.1 rule falsification. Plays position
+/// rather than reaction: holds just outside Light range, walks forward and
+/// back to bait a whiff, and only commits to an attack once the opponent
+/// has already committed to one (state == AttackRecovery, i.e. can no
+/// longer block or cancel). If Spacer can't beat Spammer once the neutral
+/// game exists (v0.2 Change 5), spacing isn't actually rewarded and the
+/// middle of the arena is still decoration - the most informative single
+/// result the milestone can produce, per its own build prompt.
+pub struct Spacer {
+    /// Just past Light's reach: close enough to threaten and punish, far
+    /// enough that a whiffed Light can't tag us for free.
+    hold_range: Fixed,
+    /// How far in/out of hold_range we tolerate before repositioning,
+    /// versus baiting in place.
+    band: Fixed,
+    bait_forward: bool,
+}
+
+impl Spacer {
+    pub fn new() -> Spacer {
+        Spacer { hold_range: Fixed::from_int(155), band: Fixed::from_int(15), bait_forward: true }
+    }
+}
+
+impl Default for Spacer {
+    fn default() -> Self {
+        Spacer::new()
+    }
+}
+
+impl Agent for Spacer {
+    fn name(&self) -> &str {
+        "spacer"
+    }
+
+    fn decide(&mut self, obs: &Observation) -> Intent {
+        // Punish: the opponent already committed to an attack that's now in
+        // its unblockable, uncancellable recovery window, and we're close
+        // enough to reach it.
+        if obs.opponent.state == FighterState::AttackRecovery && obs.distance <= self.hold_range {
+            return Intent::Attack(AttackKind::Light);
+        }
+        // Danger: the opponent is mid-swing and we're in range to eat it -
+        // block rather than keep spacing.
+        if obs.opponent.state == FighterState::AttackStartup && obs.distance <= self.hold_range {
+            return Intent::Block;
+        }
+
+        let near = self.hold_range - self.band;
+        let far = self.hold_range + self.band;
+        if obs.distance < near {
+            Intent::Move(Direction::Back)
+        } else if obs.distance > far {
+            Intent::Move(Direction::Forward)
+        } else {
+            // In the pocket: bait by rocking forward and back rather than
+            // sitting still (a still target is a free read).
+            self.bait_forward = !self.bait_forward;
+            Intent::Move(if self.bait_forward { Direction::Forward } else { Direction::Back })
+        }
+    }
+
+    fn reset(&mut self) {
+        self.bait_forward = true;
+    }
+}

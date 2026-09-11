@@ -307,3 +307,57 @@ rebuild the CLI binary itself, not just whatever cargo target happens to
 touch kadu-core.
 
 ---
+
+## Spacer agent — the design-thesis test
+
+Not a ruleset change (no aggregate/version bump). A new agent
+(`kadu-agent::Spacer`): holds at ~155 units (just past Light's ~130-170
+unit reach), rocks forward/back to bait rather than standing still,
+blocks when the opponent is mid-swing and in range, and only attacks when
+the opponent is caught in `AttackRecovery` - a genuine whiff punish, not a
+reaction to the swing itself.
+
+**The test, per the build prompt:** if Spacer can't beat Spammer once the
+neutral game exists (Change 5), spacing isn't rewarded and the middle of
+the arena is still decoration.
+
+**Result: Spacer lost to Spammer 0.0% (0/200), and in fact lost to every
+non-Dummy agent 0.0%, in a 7-agent, 200-repeat round-robin.** This is the
+single clearest, most useful negative result in this milestone.
+
+**Diagnosis.** Spacer's whole plan depends on reacting to the opponent's
+state — waiting for `AttackRecovery` before committing to a punish. But
+every agent's view of the world is `observation_delay` (4 ticks) stale,
+and decisions only update every `reflex_interval` (5 ticks) — up to 9
+ticks of unavoidable latency built into the game by design, not a bug.
+Spammer's attack cycle (startup 4 + active 2 + recovery 10 = 16 ticks,
+looping with no gap since it always re-presses Light the instant it's
+actionable) is barely longer than that latency. By the time Spacer's
+observation *shows* `AttackRecovery`, more than half of Spammer's whole
+cycle may already have elapsed — the punish window Spacer is built to
+wait for is frequently gone, or the next `AttackStartup` has already
+begun, before Spacer's decision based on stale data ever lands. A
+reactive, wait-for-the-whiff design cannot out-pace an attacker whose
+loop period is shorter than the game's own observation+reflex latency,
+no matter how sound the spacing math is. Meanwhile Spammer, which reacts
+to nothing and decides nothing, pays none of that latency cost.
+
+A second, more mundane possibility that likely compounds the first:
+155 units may simply still be inside Spammer's actual connect range
+(hitbox-to-hurtbox overlap, not the simplified single-number "range" the
+scripted agents reason about) rather than safely outside it — meaning
+Spacer wasn't fully whiff-baiting to begin with. Not disentangled from
+the latency effect above; both point the same direction.
+
+**What this means, stated plainly:** v0.2's neutral-game changes (Change
+5) made *some* agent's behaviour more varied (Random's, per that change's
+entry) but did not create a spacing advantage that a position-based
+strategy can actually convert into wins against the field's fastest,
+simplest attacker. The middle of the arena has more traffic now (Change
+1's distance histogram), but occupying it well isn't rewarded yet. That's
+a real, unresolved gap for whoever picks up v0.3's design work — not
+something this milestone's scope (tuning five specific numbers, one at a
+time) was ever going to close by itself, and it shouldn't be closed by
+quietly re-tuning Spacer until it wins; the honest result is the point.
+
+---
