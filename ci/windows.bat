@@ -1,0 +1,36 @@
+@echo off
+REM Determinism CI, Windows leg. Mirrors the windows-latest job in
+REM .github/workflows/determinism.yml. Requires a space-free MinGW-w64
+REM install on PATH (the Windows Rust std linker on this machine has no
+REM MSVC Build Tools available, and rustc's mingw-self-contained linker
+REM invocation breaks on paths containing spaces).
+setlocal
+
+echo --- environment ---
+rustc --version
+cargo --version
+
+echo --- cargo test --workspace ---
+cargo test --workspace --locked
+if errorlevel 1 exit /b 1
+
+echo --- no-float check ---
+cargo test -p kadu-core no_float_lint -- --nocapture
+if errorlevel 1 exit /b 1
+
+echo --- cargo build --release ---
+cargo build --release -p kadu-cli --locked
+if errorlevel 1 exit /b 1
+
+echo --- kadu bench (checked against determinism\expected.toml) ---
+target\release\kadu.exe bench --matches 10000 --seed 1 --expect determinism\expected.toml
+if errorlevel 1 exit /b 1
+
+echo --- kadu verify: replay corpus ---
+for %%f in (tests\corpus\*.json) do (
+    echo verifying %%f
+    target\release\kadu.exe verify "%%f"
+    if errorlevel 1 exit /b 1
+)
+
+exit /b 0
