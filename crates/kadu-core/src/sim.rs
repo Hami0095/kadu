@@ -76,7 +76,7 @@ pub struct Sim {
 
     // Passivity tracking, reset each round.
     passive_ticks: u32,
-    passive_min_distance: Fixed,
+    passive_prev_distance: Fixed,
     passive_tracked_fighter: Option<usize>,
 
     /// Drawn once from the match seed in `new()` (see START_SEPARATION_JITTER
@@ -126,7 +126,7 @@ impl Sim {
             chain_hash: 0,
             obs_buffer: VecDeque::new(),
             passive_ticks: 0,
-            passive_min_distance: Fixed::ZERO,
+            passive_prev_distance: Fixed::ZERO,
             passive_tracked_fighter: None,
             start_separation,
             #[cfg(feature = "trace-hashes")]
@@ -304,12 +304,19 @@ impl Sim {
         if self.passive_tracked_fighter != Some(leader) {
             self.passive_tracked_fighter = Some(leader);
             self.passive_ticks = 0;
-            self.passive_min_distance = dist;
+            self.passive_prev_distance = dist;
         }
 
+        // Only ticks where distance is static or increasing *since the
+        // immediately preceding tick* count toward the passive streak - a
+        // tick-over-tick comparison, not "hasn't beaten its all-time
+        // closest approach", which let a leader who'd approached once
+        // early keep coasting on that one data point for the rest of the
+        // round.
         let landed_hit_this_tick = report.hits.iter().any(|h| h.attacker_idx == leader && !h.blocked);
-        if dist < self.passive_min_distance || landed_hit_this_tick {
-            self.passive_min_distance = self.passive_min_distance.min(dist);
+        let distance_decreased = dist < self.passive_prev_distance;
+        self.passive_prev_distance = dist;
+        if distance_decreased || landed_hit_this_tick {
             self.passive_ticks = 0;
             return;
         }
@@ -317,7 +324,6 @@ impl Sim {
         self.passive_ticks += 1;
         if self.passive_ticks >= self.ruleset.passivity_warning_ticks {
             self.passive_ticks = 0;
-            self.passive_min_distance = dist;
             self.fighters[leader].warnings_this_round += 1;
             let second = self.fighters[leader].warnings_this_round >= 2;
             if second {

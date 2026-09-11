@@ -243,7 +243,7 @@ fn simultaneous_throws_within_tech_window_deal_no_damage() {
 
 #[test]
 fn passivity_warning_is_logged_within_the_window() {
-    let rs = ruleset_with(&[("warning_ticks        = 300", "warning_ticks        = 60")]);
+    let rs = ruleset_with(&[("warning_ticks        = 480   # v0.2 Change 3: 300 -> 480 (8s); a penalty everyone pays is a tax, not a penalty", "warning_ticks        = 60")]);
     let mut sim = Sim::new(rs, 6);
     let mut hit_landed = false;
     let mut warned = false;

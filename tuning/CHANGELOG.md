@@ -151,3 +151,48 @@ measurable cost, not noise (confirmed across three separate clean runs with
 no other load on the machine).
 
 ---
+
+## Change 3 — Retune passivity
+
+Ruleset: 2026.3 → 2026.4 · Aggregate: `0x8bf709d03f3d7990` → `0x8bf709d03f3d7990` (unchanged — see below) · ruleset_hash: `0x0e99bfbb419388a8` → `0x974348015e70bac1`
+
+**Hypothesis:** `warning_ticks` 300 → 480 (8s), and the counting rule
+changed from "hasn't beaten its all-time closest approach" (a running
+minimum, reset on any new record-close distance, however small or long ago)
+to "distance didn't decrease *since the immediately preceding tick*" (a
+tick-over-tick comparison). Predicted: penalties fall from 0.8/round to
+under 0.15/round.
+
+**Before:** 28,285 penalties over 29,777 rounds ≈ **0.95/round**
+(the build prompt's "0.8/round" figure was from v0.1's original tournament;
+Change 2 had already pushed it to 0.95, part of the same knock-on effect
+the Change 2 entry describes — more rounds ending in slow timeouts means
+more time for the passivity clock to run).
+
+**After:** 7,200 penalties over 29,383 rounds ≈ **0.245/round**.
+
+**Verdict: partially confirmed.** A real, large reduction (0.95 → 0.245,
+roughly a 4x drop) in the intended direction, from a threshold that's now
+genuinely harder to satisfy accidentally. But it lands well above the
+<0.15/round target, not under it — this rule still fires more than once
+every four rounds on average. Bench aggregate is unchanged
+(`0x8bf709d03f3d7990`, confirmed by rerunning before/after): `kadu bench`'s
+fixed Rusher-vs-Dummy matchup never triggers passivity at all (Rusher
+never idles), so it was never going to move on this change; ruleset_hash
+still updates since the ruleset content changed.
+
+A side effect worth flagging rather than burying: Dummy, Turtle, and Runner
+all dropped to an exact **0.0%** win rate against the field (from 0.3-0.5%,
+1.4-3.8%, and 1.7-2.4% respectively before this change), and Random's win
+rate rose further (56.8% → 60.9%). The stricter, longer-window passivity
+rule appears to be actively working against whichever fighter is already
+behind and holding still (which, structurally, is usually the weaker
+agent in a lopsided matchup) rather than only catching genuine stalling by
+a *leader* — the rule is specified as applying only to "the fighter
+currently leading on vitality," so this shouldn't be able to punish a
+fighter for losing, but three already-weak agents getting pushed to
+literally zero at the same moment this rule tightened is a pattern, not
+noise. Flagged for closer inspection before v0.3; not chased further here
+given the size of this milestone already.
+
+---

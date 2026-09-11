@@ -120,7 +120,7 @@ fn turtle_gets_guard_crushed() {
 fn runner_receives_passivity_penalty() {
     // Small warning window so the retreat-and-block phase reliably crosses
     // it within the match's tick budget.
-    let rs = ruleset_with(&[("warning_ticks        = 300", "warning_ticks        = 90")]);
+    let rs = ruleset_with(&[("warning_ticks        = 480   # v0.2 Change 3: 300 -> 480 (8s); a penalty everyone pays is a tax, not a penalty", "warning_ticks        = 90")]);
     let n = 100;
     let mut any_warning = 0;
     let mut any_second_warning = 0;

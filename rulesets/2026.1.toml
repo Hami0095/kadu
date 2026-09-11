@@ -3,7 +3,7 @@
 # tuning/CHANGELOG.md and determinism/README.md's update procedure.
 # The filename (rulesets/2026.1.toml) tracks the ruleset *family*; this
 # tracks the specific revision within it.
-version = "2026.3"
+version = "2026.4"
 
 [timing]
 tick_rate            = 60      # ticks per second
@@ -42,7 +42,7 @@ ticks                = 1800
 vitality              = 250
 
 [passivity]
-warning_ticks        = 300
+warning_ticks        = 480   # v0.2 Change 3: 300 -> 480 (8s); a penalty everyone pays is a tax, not a penalty
 penalty_fraction_pct = 10      # percent of current vitality subtracted on 2nd warning
 
 [guard_crush]
