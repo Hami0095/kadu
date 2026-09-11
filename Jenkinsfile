@@ -60,6 +60,16 @@ pipeline {
                 }
                 stage('wasm32 (Node)') {
                     agent { label 'built-in' }
+                    // Even a wasm32 cross-build compiles and runs build
+                    // scripts/proc-macros (serde, proc-macro2, ...) for the
+                    // HOST target as part of the build, so this still needs
+                    // a working host linker - same fix as the native
+                    // Windows stage, and for the same reason (see
+                    // ci/windows.bat's comment).
+                    environment {
+                        PATH = "C:\\mingw64\\bin;${env.PATH}"
+                        RUSTUP_TOOLCHAIN = "stable-x86_64-pc-windows-gnu"
+                    }
                     steps {
                         bat 'cargo build --release --target wasm32-unknown-unknown -p kadu-wasm-check --locked'
                         bat 'node crates\\kadu-wasm-check\\run.js 10000 1 --expect determinism\\expected.toml'
