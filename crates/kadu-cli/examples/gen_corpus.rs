@@ -77,7 +77,7 @@ fn main() {
     //    single decisive round so the match ends on the timeout).
     {
         let (rs, toml) = ruleset_with(&[
-            ("round_ticks          = 5400", "round_ticks          = 260"),
+            ("round_ticks          = 3600    # 60 seconds (v0.2 Change 4: 5400 -> 3600; prefer shortening the round over inflating damage - timeouts are a spectator problem before a balance problem)", "round_ticks          = 260"),
             ("rounds_to_win        = 2", "rounds_to_win        = 1"),
         ]);
         let mut rec = Recorder::new(rs, toml, 2, "one-hit-then-stall", "dummy");
@@ -126,7 +126,7 @@ fn main() {
     //    acts, so every round is an exact draw until sudden death triggers.
     {
         let (rs, toml) = ruleset_with(&[
-            ("round_ticks          = 5400", "round_ticks          = 120"),
+            ("round_ticks          = 3600    # 60 seconds (v0.2 Change 4: 5400 -> 3600; prefer shortening the round over inflating damage - timeouts are a spectator problem before a balance problem)", "round_ticks          = 120"),
             ("intermission_ticks   = 480", "intermission_ticks   = 10"),
             ("opening_freeze_ticks = 90", "opening_freeze_ticks = 5"),
             ("max_rounds           = 5", "max_rounds           = 2"),

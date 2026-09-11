@@ -3,11 +3,11 @@
 # tuning/CHANGELOG.md and determinism/README.md's update procedure.
 # The filename (rulesets/2026.1.toml) tracks the ruleset *family*; this
 # tracks the specific revision within it.
-version = "2026.4"
+version = "2026.5"
 
 [timing]
 tick_rate            = 60      # ticks per second
-round_ticks          = 5400    # 90 seconds
+round_ticks          = 3600    # 60 seconds (v0.2 Change 4: 5400 -> 3600; prefer shortening the round over inflating damage - timeouts are a spectator problem before a balance problem)
 intermission_ticks   = 480     # 8 seconds
 opening_freeze_ticks = 90      # inputs discarded during this
 rounds_to_win        = 2       # best of 3

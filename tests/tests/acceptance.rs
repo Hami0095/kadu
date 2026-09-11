@@ -90,7 +90,7 @@ fn round_times_out_with_percentage_winner() {
     // one light hit then stalls, so the round (and match) expires with
     // fighter 0 ahead on vitality percentage.
     let rs = ruleset_with(&[
-        ("round_ticks          = 5400", "round_ticks          = 260"),
+        ("round_ticks          = 3600    # 60 seconds (v0.2 Change 4: 5400 -> 3600; prefer shortening the round over inflating damage - timeouts are a spectator problem before a balance problem)", "round_ticks          = 260"),
         ("rounds_to_win        = 2", "rounds_to_win        = 1"),
     ]);
     let mut hit_landed = false;
@@ -149,7 +149,7 @@ fn sudden_death_triggers_when_bout_reaches_max_rounds_undecided() {
     // Two dummies never fight: every round is an exact draw, so the bout
     // must reach max_rounds and fall into sudden death.
     let rs = ruleset_with(&[
-        ("round_ticks          = 5400", "round_ticks          = 120"),
+        ("round_ticks          = 3600    # 60 seconds (v0.2 Change 4: 5400 -> 3600; prefer shortening the round over inflating damage - timeouts are a spectator problem before a balance problem)", "round_ticks          = 120"),
         ("intermission_ticks   = 480", "intermission_ticks   = 10"),
         ("opening_freeze_ticks = 90", "opening_freeze_ticks = 5"),
         ("max_rounds           = 5", "max_rounds           = 2"),

@@ -196,3 +196,52 @@ noise. Flagged for closer inspection before v0.3; not chased further here
 given the size of this milestone already.
 
 ---
+
+## Change 4 — Round length (run only because timeouts were still above 30%)
+
+Ruleset: 2026.4 → 2026.5 · Aggregate: `0x8bf709d03f3d7990` → `0x8bf709d03f3d7990` (unchanged — see below) · ruleset_hash: `0x974348015e70bac1` → `0xcc083260757a969b`
+
+Condition for running this change at all: timeouts still above 30% after
+Change 2. They were — 57.5% after Change 3. Ran it.
+
+**Hypothesis:** `round_ticks` 5400 → 3600 (60s). Predicted: timeouts below
+25%, mean round duration 30-50 seconds.
+
+**Before:** timeouts 57.5% (Change 3) · mean round duration 67.1s (4,027 ticks)
+
+**After:** timeouts **59.4%** · mean round duration **49.9s** (2,993 ticks)
+
+**Verdict: refuted on the metric that mattered, confirmed on the one that
+didn't — and the reason why is the most useful thing this milestone
+produced.**
+
+Mean round duration landed inside the predicted 30-50s window. Timeouts
+went the *wrong direction* — up, not down, despite that. The mechanism:
+shortening the clock doesn't change how much damage gets dealt per tick,
+only how many ticks are available before the clock runs out. Damage per
+round didn't rise (1980, actually slightly lower than before) — so the
+*same* roughly-half-a-health-bar-per-round pace now has 33% less time to
+reach a KO before time expires. Fewer ticks to work with, same rate of
+work, means fewer completed KOs and more expired clocks. `round_ticks`
+alone was the wrong lever for the timeout percentage specifically; it's the
+right lever for wall-clock round length, and those turned out to be two
+different problems wearing one number. Fixing the timeout rate needs
+either more damage per tick or a shorter clock *paired with* more damage,
+not a shorter clock alone — kept exactly as specified here rather than
+compounding a second change into the same measurement, per this
+milestone's own "one change at a time" rule, but flagged clearly: **v0.2
+ships with timeouts at 59%, worse than v0.1's 54.4%, not better.**
+
+Unplanned but real positive side effect: passivity penalties fell further,
+from 0.245/round (Change 3) to **4,000 / 29,989 ≈ 0.133/round** — *under*
+the <0.15/round target Change 3 itself narrowly missed. A shorter round
+simply leaves less total tick-time for the passivity clock to run in any
+single round, so Change 4 finished the job Change 3 started, by accident.
+
+Bench aggregate unchanged (`0x8bf709d03f3d7990`): `kadu bench`'s fixed
+Rusher-vs-Dummy matchup always resolves in a quick KO, long before either
+the old or new round clock would expire, so it never observes the
+difference — confirmed by rerunning before/after. ruleset_hash still
+updated, since the ruleset content did.
+
+---

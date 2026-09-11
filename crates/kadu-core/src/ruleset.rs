@@ -492,7 +492,7 @@ mod tests {
     fn loads_default_ruleset() {
         let rs = default_ruleset();
         assert_eq!(rs.tick_rate, 60);
-        assert_eq!(rs.round_ticks, 5400);
+        assert_eq!(rs.round_ticks, 3600); // v0.2 Change 4: 5400 -> 3600
         assert_eq!(rs.light.damage, 30);
     }
 
