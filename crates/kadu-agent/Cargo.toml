@@ -2,6 +2,7 @@
 name = "kadu-agent"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 
 [dependencies]
 kadu-core = { path = "../kadu-core" }
