@@ -2,6 +2,70 @@ use kadu_core::rng::Pcg32;
 use kadu_core::{AttackKind, Direction, FighterState, Intent, Observation};
 pub use kadu_core::{Agent, Fixed};
 
+/// Shared stalemate-breaker for fixtures that never initiate an attack
+/// under their own normal logic (Turtle: never attacks, period; Spacer:
+/// only ever attacks off a specific reactive signal). Two such fixtures
+/// paired against each other can otherwise stand at point-blank range for
+/// an entire round without ever landing a hit - not because the ruleset
+/// produced a timeout, but because neither fixture's decision function
+/// contains a path that throws a punch. That's a fixture-contact failure,
+/// not a finding, and it was invisible until contested-round partitioning
+/// made "0 hits, round timed out" visible as distinct from a real fight.
+///
+/// Tracks ticks since either fighter's vitality last changed (the
+/// observable proxy for "a hit landed") and reports true once that's gone
+/// on long enough, while in range, that a real fight would almost
+/// certainly already show some damage. Firing it throws exactly one
+/// probing Light and lets the fixture's own logic resume immediately
+/// after - this breaks deadlocks without redefining what the fixture
+/// normally does.
+struct ProbeTimer {
+    last_my_vitality: i32,
+    last_opponent_vitality: i32,
+    stale_polls: u32,
+    threshold_polls: u32,
+}
+
+impl ProbeTimer {
+    /// `threshold_polls` is in units of `decide()` calls (one per
+    /// `reflex_interval` ticks), not raw ticks.
+    fn new(threshold_polls: u32) -> ProbeTimer {
+        ProbeTimer { last_my_vitality: i32::MIN, last_opponent_vitality: i32::MIN, stale_polls: 0, threshold_polls }
+    }
+
+    /// Call once per `decide()`. Returns true when the stalemate threshold
+    /// has just been reached (fires once per stale streak, not on every
+    /// poll past the threshold, so callers can treat it as "probe now").
+    fn should_probe(&mut self, obs: &Observation) -> bool {
+        let unchanged = obs.me.vitality == self.last_my_vitality && obs.opponent.vitality == self.last_opponent_vitality;
+        self.last_my_vitality = obs.me.vitality;
+        self.last_opponent_vitality = obs.opponent.vitality;
+        if unchanged {
+            self.stale_polls += 1;
+        } else {
+            self.stale_polls = 0;
+        }
+        if self.stale_polls >= self.threshold_polls {
+            // Reset rather than latch: if this probe whiffs (e.g. the
+            // opponent isn't actually in hurtbox reach despite being
+            // within our coarse range check), vitality stays unchanged
+            // and this fires again after another full threshold - a
+            // periodic retry, not a one-shot that can silently give up
+            // for the rest of the round.
+            self.stale_polls = 0;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn reset(&mut self) {
+        self.last_my_vitality = i32::MIN;
+        self.last_opponent_vitality = i32::MIN;
+        self.stale_polls = 0;
+    }
+}
+
 /// A punching bag. Always does nothing. Used as a fixture and in tests.
 pub struct Dummy;
 
@@ -53,19 +117,34 @@ impl Agent for Rusher {
     fn reset(&mut self) {}
 }
 
-/// Falsifies Guard Crush. Blocks, and only blocks: never attacks, never
-/// moves. Crouch-blocks when it last saw the opponent crouching (the only
-/// observable proxy for "the incoming attack is low" - Observation
-/// deliberately doesn't expose a move's crouching/jumping flag), stand-
-/// blocks otherwise. If Turtle can win a round, blocking is free and the
+/// Falsifies Guard Crush. Blocks once in range - never attacks - crouch-
+/// blocking when it last saw the opponent crouching (the only observable
+/// proxy for "the incoming attack is low" - Observation deliberately
+/// doesn't expose a move's crouching/jumping flag), stand-blocking
+/// otherwise. If Turtle can win a round, blocking is free and the
 /// anti-turtling rule is broken.
+///
+/// Walks forward when out of range, and throws one probing Light if
+/// nobody's vitality has moved for a while despite being in range (see
+/// `ProbeTimer`) - otherwise two Turtles, or a Turtle and a Dummy, stand at
+/// point-blank range for a whole round without a single hit, since neither
+/// side's normal logic contains a path that attacks. Earlier versions did
+/// neither of these, which is a fixture bug, not a finding: two agents
+/// that never make contact simply never test anything, and a tournament
+/// that mixes those non-engagements in with real fights silently launders
+/// "the fixtures never made contact" into "the ruleset produces lots of
+/// timeouts." Both additions are stalemate-breakers only - Turtle still
+/// never attacks as its own first choice, and still blocks everything it
+/// can once engaged.
 pub struct Turtle {
     low_incoming: bool,
+    approach_range: Fixed,
+    probe: ProbeTimer,
 }
 
 impl Turtle {
     pub fn new() -> Turtle {
-        Turtle { low_incoming: false }
+        Turtle { low_incoming: false, approach_range: Fixed::from_int(160), probe: ProbeTimer::new(60) }
     }
 }
 
@@ -81,6 +160,16 @@ impl Agent for Turtle {
     }
 
     fn decide(&mut self, obs: &Observation) -> Intent {
+        // Called unconditionally so the stalemate clock keeps running even
+        // while approaching, not just while already in blocking range.
+        let should_probe = self.probe.should_probe(obs);
+
+        if obs.distance > self.approach_range && !obs.opponent.state.is_attack() {
+            return Intent::Move(Direction::Forward);
+        }
+        if should_probe {
+            return Intent::Attack(AttackKind::Light);
+        }
         // Update our belief about the incoming attack's height only while
         // the opponent isn't already mid-swing, so we're reading their
         // stance, not a moment frozen inside their own attack animation.
@@ -99,6 +188,7 @@ impl Agent for Turtle {
 
     fn reset(&mut self) {
         self.low_incoming = false;
+        self.probe.reset();
     }
 }
 
@@ -157,17 +247,40 @@ impl Agent for Runner {
 }
 
 /// Falsifies combo damage scaling and the 15-hit cap (and reveals whether
-/// Light is overtuned). Presses Light the instant it's actionable. No
-/// blocking, no movement, no thought - the engine's own intent gating
-/// handles "the instant it is actionable" for free.
-pub struct Spammer;
+/// Light is overtuned). Presses Light the instant it's actionable, once in
+/// range. No blocking, no thought otherwise - the engine's own intent
+/// gating handles "the instant it is actionable" for free.
+///
+/// Walks forward when out of range. Earlier versions never moved at all,
+/// relying entirely on the opponent (or a close enough starting position)
+/// to bring them into contact; against a stationary opponent that never
+/// happened, and the resulting non-engagement was previously misread as a
+/// finding rather than the fixture-contact bug it is.
+pub struct Spammer {
+    approach_range: Fixed,
+}
+
+impl Spammer {
+    pub fn new() -> Spammer {
+        Spammer { approach_range: Fixed::from_int(140) }
+    }
+}
+
+impl Default for Spammer {
+    fn default() -> Self {
+        Spammer::new()
+    }
+}
 
 impl Agent for Spammer {
     fn name(&self) -> &str {
         "spammer"
     }
 
-    fn decide(&mut self, _obs: &Observation) -> Intent {
+    fn decide(&mut self, obs: &Observation) -> Intent {
+        if obs.distance > self.approach_range {
+            return Intent::Move(Direction::Forward);
+        }
         Intent::Attack(AttackKind::Light)
     }
 
@@ -258,11 +371,16 @@ pub struct Spacer {
     /// versus baiting in place.
     band: Fixed,
     bait_forward: bool,
+    /// Stalemate-breaker: Spacer's own logic only ever attacks reactively
+    /// (punishing a caught recovery window), so against an opponent that
+    /// never attacks either (Turtle, Dummy), it would otherwise hold
+    /// position and bait forever without ever landing a hit.
+    probe: ProbeTimer,
 }
 
 impl Spacer {
     pub fn new() -> Spacer {
-        Spacer { hold_range: Fixed::from_int(155), band: Fixed::from_int(15), bait_forward: true }
+        Spacer { hold_range: Fixed::from_int(155), band: Fixed::from_int(15), bait_forward: true, probe: ProbeTimer::new(60) }
     }
 }
 
@@ -278,6 +396,12 @@ impl Agent for Spacer {
     }
 
     fn decide(&mut self, obs: &Observation) -> Intent {
+        // Called unconditionally, every decide(), regardless of which
+        // branch below ends up firing - the stalemate clock has to keep
+        // running even while we're mid-reposition, or it never reaches
+        // threshold during a long bait-and-circle stretch.
+        let should_probe = self.probe.should_probe(obs);
+
         // Punish: the opponent already committed to an attack that's now in
         // its unblockable, uncancellable recovery window, and we're close
         // enough to reach it.
@@ -288,6 +412,10 @@ impl Agent for Spacer {
         // block rather than keep spacing.
         if obs.opponent.state == FighterState::AttackStartup && obs.distance <= self.hold_range {
             return Intent::Block;
+        }
+
+        if should_probe && obs.distance <= self.hold_range {
+            return Intent::Attack(AttackKind::Light);
         }
 
         let near = self.hold_range - self.band;
@@ -306,5 +434,6 @@ impl Agent for Spacer {
 
     fn reset(&mut self) {
         self.bait_forward = true;
+        self.probe.reset();
     }
 }

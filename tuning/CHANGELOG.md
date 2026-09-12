@@ -361,3 +361,146 @@ time) was ever going to close by itself, and it shouldn't be closed by
 quietly re-tuning Spacer until it wins; the honest result is the point.
 
 ---
+
+## Measurement correction — contested-bout partitioning and fixture fixes
+
+Not a ruleset change. This entry exists because every v0.2 conclusion above
+was measured on data that mixed real fights with fixture non-engagement,
+and one conclusion (Change 4's) was actively wrong as a result. Filed per
+direct instruction to fix the measurement before changing anything else,
+re-derive the v0.2 conclusions on clean data, and only then revisit
+ruleset numbers. No ruleset value changed in this entry — four bugs did.
+
+### Bug 1: no contested/non-contested partition
+
+`kadu tourney`'s aggregate stats (round endings, mean duration, per-100-round
+rates) summed every round indiscriminately, including rounds where neither
+fighter ever landed or blocked a single hit — two fixtures that never got
+in range of each other, not a data point about the ruleset. A round that
+times out because nobody ever fought and a round that times out because a
+real fight ran the clock out look identical in "timeout %" unless they're
+told apart. Fixed: `RoundStats` now carries a `contested: bool` (true iff
+at least one hit — landed, blocked, thrown, or teched — was recorded), and
+`kadu tourney` reports round endings, mean duration, and per-100-round
+rates for contested rounds only, with non-contested rounds' own ending
+breakdown and count reported separately rather than folded in. A new
+warning fires when non-contested rounds exceed 10% of the total.
+
+### Bug 2: Turtle and Spammer never moved, at all
+
+Both were built to the v0.1 spec's letter ("never moves") with no
+fallback. Against a stationary opponent — most obviously each other, or
+Dummy — they simply never made contact and ran out the clock every round,
+which earlier reports (wrongly) treated as a valid finding about passivity
+or timeout rate rather than the fixture-contact bug it is. Fixed: both now
+walk forward when the opponent is out of range. Their designed test
+behaviour is otherwise untouched — Turtle still never voluntarily attacks,
+Spammer still presses Light the instant it's in range.
+
+### Bug 3: Turtle and Spacer could still deadlock at point-blank range
+
+Fixing Bug 2 closed most gaps but not all: Turtle never attacks under any
+condition, and Spacer only ever attacks reactively (punishing a caught
+recovery window). Two such fixtures paired together (or against Dummy)
+could stand at point-blank range for a full round without either one's
+decision logic ever containing a path that throws a punch. Fixed: added a
+shared `ProbeTimer` (in `kadu-agent`) that both now use — if neither
+fighter's vitality has moved for ~5 seconds despite being in range, throw
+one probing Light, then resume normal logic immediately. Dummy is
+deliberately exempt (see below) — it remains the one true zero-input
+baseline.
+
+### Bug 4: `Agent::reset()` was never called, by anything
+
+The trait has documented, since v0.1, that `reset()` is "called between
+rounds." Nothing in `kadu-cli` — not `run_match`, not
+`run_match_with_stats`, not the test harness in `tests/tests/agents.rs` —
+ever actually called it. Every stateful agent's internal state (Runner's
+`ahead` flag, the new `ProbeTimer`s, Turtle's crouch-read belief) leaked
+across round boundaries within a match uncorrected. This is the most
+consequential of the four: Runner's `ahead` flag, once set in round 1,
+never cleared, so Runner spent every subsequent round of a match in
+permanent retreat-and-block mode regardless of that round's actual
+vitality state — which is not what "Runner falsifies the passivity count"
+is supposed to test at all. Fixed: all three call sites now call
+`agent.reset()` on both fighters whenever a round ends and the match
+hasn't (confirmed via `--expect` that this has zero effect on the
+determinism aggregate: Rusher and Dummy, the bench pairing, both have
+no-op `reset()`s).
+
+**Combined effect of fixing all four, full tournament (`--repeats 200`,
+all 7 agents, 9,800 bouts):**
+
+| | Before (all four bugs present) | After |
+|---|---|---|
+| Non-contested rounds | 47% | 12% (remaining 12% is largely Dummy-vs-Dummy, which is structurally unable to contest by design — Dummy stays a true zero-input baseline per explicit decision, not a bug) |
+| Timeouts (now: contested rounds only) | 61.8% (all rounds, uncorrected) | 30.4% |
+| Turtle overall win rate | 0.0% | 34.9% |
+| Runner overall win rate | 0.0% | 14.7% |
+| Spacer overall win rate | 0.0% | 27.1% |
+| Dummy overall win rate | 0.0% | 15.4% |
+
+The most important single change in the matrix: **Dummy now beats Runner
+100% of the time.** Traced to a single match: Runner lands one Light,
+becomes the leader, retreats and blocks for the rest of the round exactly
+as designed — and with `reset()` now correctly *not* carrying that lockout
+into future rounds, the passivity clock (retuned in Change 3) catches
+Runner's continued stillness within that same round, firing three
+compounding 10%-vitality penalties. Runner's vitality falls from 1000
+toward ~729; once it drops below Dummy's post-hit 970 (also ticking down
+from two of its own penalties once it becomes the new nominal leader),
+Dummy wins the timeout on raw vitality percentage. **The retuned passivity
+rule is doing exactly its job — "land one hit and turtle" is no longer a
+free win, it can now lose outright** — this was invisible before because
+the `reset()` bug meant Runner's very first round's outcome effectively
+determined its behaviour, and by extension its measured win rate, for
+every subsequent round of every match it played.
+
+### Change 4, re-derived on clean data
+
+**This is the correction the instruction specifically flagged as unsafe.**
+Re-ran the round_ticks 3600-vs-5400 A/B on current fixtures, with
+contested-only metrics, changing nothing else:
+
+| | round_ticks 3600 (shipped) | round_ticks 5400 (diagnostic revert) |
+|---|---|---|
+| Timeouts (contested only) | 30.4% | 30.5% |
+| Mean round duration (contested only) | 36.1s | 45.7s |
+| KO / double KO / sudden death | 29.3% / 31.4% / 8.9% | 29.6% / 31.1% / 8.8% |
+
+**Corrected verdict: CONFIRMED, not refuted.** The original verdict ("timeouts
+got worse, 57.5% -> 59.4%") was measured on all-rounds data dominated by
+fixture non-engagement and is retracted. On contested rounds only,
+`round_ticks` has no material effect on timeout rate at all (30.4% vs
+30.5% — within noise) and does exactly what it was specified to do: scale
+mean round duration down in proportion to the clock (36.1s vs 45.7s),
+with no adverse side effect on how often real fights resolve decisively.
+The "shortening the round makes timeouts worse" mechanism described in the
+original Change 4 entry was real arithmetic, but it was describing an
+artifact of non-contested rounds being weighted into the average, not a
+property of real fights.
+
+### Binary-outcome retest under widened perturbation
+
+Widened `start_separation_jitter` 80 -> 300 (diagnostic only, not shipped)
+and reran the full tournament: the win matrix's shape — which cells are
+exactly 100%/0% — is unchanged. `rusher` vs `turtle` is still 100/0,
+`spammer` vs `rusher` is still (now) an exact draw, `dummy` vs `runner` is
+still 100/0. Nearly 4x the positional variance of Change 1's original
+range moved individual percentages by low single digits at most and
+flipped no pairing's qualitative outcome. **This confirms, rather than
+refutes, the standing diagnosis from Changes 1-2: the remaining binary
+outcomes are determined by the interacting scripted policies themselves
+(a fixed agent script's own logic has no randomness to perturb), not by
+starting position** — a much stronger claim now that it's been tested
+under 4x the original jitter with clean fixtures and contested-only
+metrics, rather than assumed from a single jitter value.
+
+### What's still open, deliberately not addressed here
+
+Per instruction, no ruleset numbers were touched in this entry. The
+non-contested Dummy-vs-Dummy residual, the still-binary scripted
+pairings, and whether any Change 1-3/5 numeric value should be revisited
+in light of clean data are all next steps, not resolved here.
+
+---

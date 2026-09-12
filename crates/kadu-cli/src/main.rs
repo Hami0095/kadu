@@ -19,7 +19,7 @@ fn make_agent(name: &str, match_seed: u64, slot: usize) -> Box<dyn Agent> {
         "rusher" => Box::new(Rusher::new()),
         "turtle" => Box::new(Turtle::new()),
         "runner" => Box::new(Runner::new()),
-        "spammer" => Box::new(Spammer),
+        "spammer" => Box::new(Spammer::new()),
         "random" => Box::new(Random::new(match_seed, slot)),
         "spacer" => Box::new(Spacer::new()),
         other => {
@@ -56,7 +56,13 @@ fn run_match(agent_a_name: &str, agent_b_name: &str, seed: u64, ruleset_path: Op
             let obs_b = rec.sim.observation(1);
             last_intents = [agent_a.decide(&obs_a), agent_b.decide(&obs_b)];
         }
-        rec.tick(last_intents);
+        let report = rec.tick(last_intents);
+        // Agent::reset() is documented as "called between rounds" - this
+        // is the only place a round boundary is visible to the driver.
+        if report.round_ended.is_some() && report.match_ended.is_none() {
+            agent_a.reset();
+            agent_b.reset();
+        }
         if rec.is_over() {
             break;
         }

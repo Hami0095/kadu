@@ -73,6 +73,13 @@ fn play_match(mut agent_a: Box<dyn Agent>, mut agent_b: Box<dyn Agent>, ruleset:
         warnings += report.warnings.len() as u32;
         second_warnings += report.warnings.iter().filter(|w| w.second_warning).count() as u32;
 
+        // Agent::reset() is documented as "called between rounds" - this
+        // is the only place a round boundary is visible to the driver.
+        if report.round_ended.is_some() && report.match_ended.is_none() {
+            agent_a.reset();
+            agent_b.reset();
+        }
+
         if let Some(m) = report.match_ended {
             winner = m.winner;
             break;
@@ -156,7 +163,7 @@ fn spammer_combos_are_capped() {
     let mut max_combo_seen = 0u8;
 
     for seed in 0..n {
-        let summary = play_match(Box::new(Spammer), Box::new(Dummy), rs.clone(), seed);
+        let summary = play_match(Box::new(Spammer::new()), Box::new(Dummy), rs.clone(), seed);
         assert!(summary.max_combo <= 15, "combo exceeded the 15-hit hard-knockdown cap: {}", summary.max_combo);
         max_combo_seen = max_combo_seen.max(summary.max_combo);
 
@@ -225,7 +232,7 @@ fn spacer_currently_loses_to_spammer() {
     let n = 100;
     let mut spacer_wins = 0;
     for seed in 0..n {
-        let summary = play_match(Box::new(Spacer::new()), Box::new(Spammer), default_ruleset(), seed);
+        let summary = play_match(Box::new(Spacer::new()), Box::new(Spammer::new()), default_ruleset(), seed);
         if summary.winner == Some(0) {
             spacer_wins += 1;
         }

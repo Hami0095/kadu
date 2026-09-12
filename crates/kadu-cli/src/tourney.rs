@@ -17,21 +17,56 @@ struct PairCell {
     draws: u32,
 }
 
-#[derive(Default)]
-struct Aggregate {
-    bouts: u32,
+/// Round-ending and duration counters for one partition (contested or
+/// non-contested rounds).
+#[derive(Default, Clone, Copy)]
+struct EndingCounts {
     rounds: u32,
     ko: u32,
     timeout: u32,
     double_ko: u32,
     sudden_death: u32,
-    round_duration_ticks_sum: u64,
+    duration_ticks_sum: u64,
+}
+
+#[derive(Default)]
+struct Aggregate {
+    bouts: u32,
+    contested: EndingCounts,
+    non_contested: EndingCounts,
     damage_per_bout_sum: u64,
     guard_crushes: u32,
     trades: u32,
     passivity_penalties: u32,
     distance_ticks: [u64; DISTANCE_BUCKETS],
     total_ticks: u64,
+}
+
+impl EndingCounts {
+    fn record(&mut self, ending: &str, duration_ticks: u32) {
+        self.rounds += 1;
+        self.duration_ticks_sum += duration_ticks as u64;
+        match ending {
+            "ko" => self.ko += 1,
+            "timeout" => self.timeout += 1,
+            "double_ko" => self.double_ko += 1,
+            "sudden_death" => self.sudden_death += 1,
+            _ => {}
+        }
+    }
+
+    fn mean_duration_ticks(&self) -> f64 {
+        if self.rounds > 0 {
+            self.duration_ticks_sum as f64 / self.rounds as f64
+        } else {
+            0.0
+        }
+    }
+
+    fn pct(&self, name_count: u32) -> f64 {
+        let total = self.rounds.max(1) as f64;
+        name_count as f64 * 100.0 / total
+    }
 }
 
 #[derive(Serialize)]
@@ -41,14 +76,23 @@ struct TourneyOutput {
     seed: u64,
     matrix: BTreeMap<String, BTreeMap<String, PairCellOut>>,
     win_rates: Vec<(String, f64)>,
+    total_rounds: u32,
+    contested_rounds: u32,
+    non_contested_rounds: u32,
+    contested_pct: f64,
+    /// Round-ending percentages among contested rounds only - see
+    /// `RoundStats::contested`'s doc for why non-contested rounds are
+    /// excluded here.
     ending_pct: BTreeMap<String, f64>,
+    non_contested_ending_pct: BTreeMap<String, f64>,
     mean_round_duration_ticks: f64,
     mean_round_duration_seconds: f64,
+    non_contested_mean_duration_seconds: f64,
     mean_damage_per_bout: f64,
     guard_crushes: u32,
-    guard_crushes_per_100_rounds: f64,
+    guard_crushes_per_100_contested_rounds: f64,
     trades: u32,
-    trades_per_100_rounds: f64,
+    trades_per_100_contested_rounds: f64,
     passivity_penalties: u32,
     distance_histogram_pct: [f64; DISTANCE_BUCKETS],
     warnings: Vec<String>,
@@ -154,14 +198,10 @@ pub fn cmd_tourney(args: &[String]) {
                 agg.passivity_penalties += stats.totals[0].passivity.penalties + stats.totals[1].passivity.penalties;
 
                 for r in &stats.rounds {
-                    agg.rounds += 1;
-                    agg.round_duration_ticks_sum += r.duration_ticks as u64;
-                    match r.ending.as_str() {
-                        "ko" => agg.ko += 1,
-                        "timeout" => agg.timeout += 1,
-                        "double_ko" => agg.double_ko += 1,
-                        "sudden_death" => agg.sudden_death += 1,
-                        _ => {}
+                    if r.contested {
+                        agg.contested.record(&r.ending, r.duration_ticks);
+                    } else {
+                        agg.non_contested.record(&r.ending, r.duration_ticks);
                     }
                     for b in 0..DISTANCE_BUCKETS {
                         agg.distance_ticks[b] += r.distance_histogram[b] as u64;
@@ -209,17 +249,26 @@ pub fn cmd_tourney(args: &[String]) {
     }
     println!();
 
-    let ending_total = (agg.ko + agg.timeout + agg.double_ko + agg.sudden_death).max(1) as f64;
-    let ko_pct = agg.ko as f64 * 100.0 / ending_total;
-    let timeout_pct = agg.timeout as f64 * 100.0 / ending_total;
-    let double_ko_pct = agg.double_ko as f64 * 100.0 / ending_total;
-    let sudden_death_pct = agg.sudden_death as f64 * 100.0 / ending_total;
-    let mean_round_duration_ticks = if agg.rounds > 0 { agg.round_duration_ticks_sum as f64 / agg.rounds as f64 } else { 0.0 };
+    // Partitioned by whether the round actually saw a hit. A round where
+    // neither fighter ever landed or blocked a strike isn't a data point
+    // about the ruleset - it's two fixtures that never got in range of
+    // each other. Mixing it into "timeout %" or "mean round duration"
+    // silently launders a fixture-contact failure into a balance number.
+    let total_rounds = agg.contested.rounds + agg.non_contested.rounds;
+    let contested_pct = if total_rounds > 0 { agg.contested.rounds as f64 * 100.0 / total_rounds as f64 } else { 0.0 };
+
+    let ko_pct = agg.contested.pct(agg.contested.ko);
+    let timeout_pct = agg.contested.pct(agg.contested.timeout);
+    let double_ko_pct = agg.contested.pct(agg.contested.double_ko);
+    let sudden_death_pct = agg.contested.pct(agg.contested.sudden_death);
+    let mean_round_duration_ticks = agg.contested.mean_duration_ticks();
     let tick_rate = 60.0; // ticks per second, from the default ruleset's timing
     let mean_round_duration_seconds = mean_round_duration_ticks / tick_rate;
+    let non_contested_mean_duration_seconds = agg.non_contested.mean_duration_ticks() / tick_rate;
+
     let mean_damage_per_bout = if agg.bouts > 0 { agg.damage_per_bout_sum as f64 / agg.bouts as f64 } else { 0.0 };
-    let guard_crushes_per_100_rounds = if agg.rounds > 0 { agg.guard_crushes as f64 * 100.0 / agg.rounds as f64 } else { 0.0 };
-    let trades_per_100_rounds = if agg.rounds > 0 { agg.trades as f64 * 100.0 / agg.rounds as f64 } else { 0.0 };
+    let guard_crushes_per_100_rounds = if agg.contested.rounds > 0 { agg.guard_crushes as f64 * 100.0 / agg.contested.rounds as f64 } else { 0.0 };
+    let trades_per_100_rounds = if agg.contested.rounds > 0 { agg.trades as f64 * 100.0 / agg.contested.rounds as f64 } else { 0.0 };
     let mut distance_pct = [0.0f64; DISTANCE_BUCKETS];
     if agg.total_ticks > 0 {
         for b in 0..DISTANCE_BUCKETS {
@@ -228,14 +277,27 @@ pub fn cmd_tourney(args: &[String]) {
     }
     let far_pct = distance_pct[DISTANCE_BUCKETS - 1] + distance_pct[DISTANCE_BUCKETS - 2];
 
-    println!("Round endings: ko={ko_pct:.1}% timeout={timeout_pct:.1}% double_ko={double_ko_pct:.1}% sudden_death={sudden_death_pct:.1}%  ({} rounds total)", agg.rounds);
-    println!("Mean round duration: {mean_round_duration_ticks:.0} ticks ({mean_round_duration_seconds:.1}s)");
+    println!(
+        "Rounds: {total_rounds} total, {} contested ({contested_pct:.1}%), {} non-contested (no hit landed or blocked - fixtures never got in range)",
+        agg.contested.rounds, agg.non_contested.rounds
+    );
+    println!("Round endings (contested rounds only): ko={ko_pct:.1}% timeout={timeout_pct:.1}% double_ko={double_ko_pct:.1}% sudden_death={sudden_death_pct:.1}%  ({} rounds)", agg.contested.rounds);
+    if agg.non_contested.rounds > 0 {
+        println!(
+            "  non-contested rounds ended: ko={:.1}% timeout={:.1}% double_ko={:.1}% sudden_death={:.1}% (mean duration {non_contested_mean_duration_seconds:.1}s - reported separately, excluded from the numbers above)",
+            agg.non_contested.pct(agg.non_contested.ko),
+            agg.non_contested.pct(agg.non_contested.timeout),
+            agg.non_contested.pct(agg.non_contested.double_ko),
+            agg.non_contested.pct(agg.non_contested.sudden_death)
+        );
+    }
+    println!("Mean round duration (contested only): {mean_round_duration_ticks:.0} ticks ({mean_round_duration_seconds:.1}s)");
     println!("Mean damage per bout: {mean_damage_per_bout:.0}");
-    println!("Guard Crushes: {} total ({guard_crushes_per_100_rounds:.1} per 100 rounds)", agg.guard_crushes);
-    println!("Trades: {} total ({trades_per_100_rounds:.1} per 100 rounds)", agg.trades);
+    println!("Guard Crushes: {} total ({guard_crushes_per_100_rounds:.1} per 100 contested rounds)", agg.guard_crushes);
+    println!("Trades: {} total ({trades_per_100_rounds:.1} per 100 contested rounds)", agg.trades);
     println!("Passivity penalties: {}", agg.passivity_penalties);
     println!(
-        "Distance histogram (% of ticks, near->far): [{}]",
+        "Distance histogram (% of ticks, near->far, all rounds): [{}]",
         distance_pct.iter().map(|p| format!("{p:.1}")).collect::<Vec<_>>().join(", ")
     );
     println!();
@@ -268,6 +330,12 @@ pub fn cmd_tourney(args: &[String]) {
     if far_pct > 60.0 {
         warnings.push(format!("{far_pct:.0}% of ticks spent in the two furthest distance buckets (>60%) - agents are orbiting at max range rather than engaging; approach incentives or move range may be off."));
     }
+    if contested_pct < 90.0 {
+        warnings.push(format!(
+            "{:.0}% of rounds were non-contested (no hit landed or blocked) - a fixture-contact problem, not a ruleset finding. Check that every agent has baseline approach-when-out-of-range behaviour before trusting any other number in this report.",
+            100.0 - contested_pct
+        ));
+    }
 
     if warnings.is_empty() {
         println!("No warnings triggered.");
@@ -298,20 +366,32 @@ pub fn cmd_tourney(args: &[String]) {
         ending_pct.insert("double_ko".to_string(), double_ko_pct);
         ending_pct.insert("sudden_death".to_string(), sudden_death_pct);
 
+        let mut non_contested_ending_pct = BTreeMap::new();
+        non_contested_ending_pct.insert("ko".to_string(), agg.non_contested.pct(agg.non_contested.ko));
+        non_contested_ending_pct.insert("timeout".to_string(), agg.non_contested.pct(agg.non_contested.timeout));
+        non_contested_ending_pct.insert("double_ko".to_string(), agg.non_contested.pct(agg.non_contested.double_ko));
+        non_contested_ending_pct.insert("sudden_death".to_string(), agg.non_contested.pct(agg.non_contested.sudden_death));
+
         let output = TourneyOutput {
             agents: agents.clone(),
             repeats,
             seed,
             matrix: matrix_out,
             win_rates: ranked.clone(),
+            total_rounds,
+            contested_rounds: agg.contested.rounds,
+            non_contested_rounds: agg.non_contested.rounds,
+            contested_pct,
             ending_pct,
+            non_contested_ending_pct,
             mean_round_duration_ticks,
             mean_round_duration_seconds,
+            non_contested_mean_duration_seconds,
             mean_damage_per_bout,
             guard_crushes: agg.guard_crushes,
-            guard_crushes_per_100_rounds,
+            guard_crushes_per_100_contested_rounds: guard_crushes_per_100_rounds,
             trades: agg.trades,
-            trades_per_100_rounds,
+            trades_per_100_contested_rounds: trades_per_100_rounds,
             passivity_penalties: agg.passivity_penalties,
             distance_histogram_pct: distance_pct,
             warnings,

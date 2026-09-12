@@ -197,6 +197,16 @@ pub struct RoundStats {
     pub duration_ticks: u32,
     pub distance_histogram: [u32; DISTANCE_BUCKETS],
     pub trades: u32,
+    /// True if at least one hit (landed, blocked, thrown, or teched) was
+    /// recorded during this round - "did they actually fight," as opposed
+    /// to two fixtures that never entered range of each other and simply
+    /// ran out the clock. A round with no hits at all is a fixture-contact
+    /// failure, not a data point about the ruleset: aggregating it in with
+    /// real fights silently inflates timeout rate, dilutes damage/round,
+    /// and drags mean round duration toward whatever the round clock
+    /// happens to be, regardless of what the ruleset actually does in a
+    /// real fight.
+    pub contested: bool,
     pub fighters: [FighterStats; 2],
 }
 
@@ -334,6 +344,10 @@ pub fn run_match_with_stats(
             let bucket = ((dist as usize) * DISTANCE_BUCKETS / (arena_width as usize + 1)).min(DISTANCE_BUCKETS - 1);
             cur.distance_histogram[bucket] += 1;
 
+            if !report.hits.is_empty() {
+                cur.contested = true;
+            }
+
             let mut hit_this_tick = [false, false];
             for h in &report.hits {
                 if h.is_tech {
@@ -397,6 +411,17 @@ pub fn run_match_with_stats(
             flush_round(&mut cur, &mut match_stats);
             cur = RoundStats { round: next_round, ..Default::default() };
             watch = [Watch::default(), Watch::default()];
+
+            // Agent::reset() is documented as "called between rounds" -
+            // this is the only place a round boundary is actually visible
+            // to the driver, so this is the only place that contract can
+            // be honoured. Skipped when the match itself just ended: there
+            // is no next round to reset into, and mid-teardown resets have
+            // no defined meaning.
+            if report.match_ended.is_none() {
+                agent_a.reset();
+                agent_b.reset();
+            }
         }
 
         if report.match_ended.is_some() {
