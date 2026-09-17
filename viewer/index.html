@@ -104,6 +104,9 @@
   <input type="file" id="fileInput" accept=".json">
   <input type="text" id="urlInput" placeholder="or paste a trace URL and press Load">
   <button id="loadUrlBtn">Load URL</button>
+  <select id="sampleSelect">
+    <option value="">Or pick a sample replay&hellip;</option>
+  </select>
 </div>
 
 <div class="layout" id="app" style="display:none;">
@@ -263,6 +266,31 @@
   el("loadUrlBtn").addEventListener("click", () => {
     const url = el("urlInput").value.trim();
     if (url) loadFromUrl(url);
+  });
+
+  // Sample replays committed under replays/ in the repo, fetched from
+  // GitHub raw so this works no matter where index.html itself is hosted.
+  const SAMPLE_REPLAYS = [
+    { label: "Rusher vs Turtle (KO)", file: "rusher-vs-turtle.json" },
+    { label: "Spammer vs Spacer (KO)", file: "spammer-vs-spacer.json" },
+    { label: "Random vs Random (timeout)", file: "random-vs-random.json" },
+  ];
+  const SAMPLE_BASE = "https://raw.githubusercontent.com/Hami0095/kadu/main/replays/";
+  (function populateSamples() {
+    const sel = el("sampleSelect");
+    for (const s of SAMPLE_REPLAYS) {
+      const opt = document.createElement("option");
+      opt.value = SAMPLE_BASE + s.file;
+      opt.textContent = s.label;
+      sel.appendChild(opt);
+    }
+  })();
+  el("sampleSelect").addEventListener("change", (e) => {
+    const url = e.target.value;
+    if (url) {
+      el("urlInput").value = url;
+      loadFromUrl(url);
+    }
   });
 
   (function checkQueryParam() {
