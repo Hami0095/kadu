@@ -1,6 +1,7 @@
 mod frames;
 mod stats;
 mod tourney;
+mod trace;
 
 use std::fmt::Write as _;
 use std::fs;
@@ -83,6 +84,7 @@ fn cmd_run(args: &[String]) {
     let mut ruleset_path: Option<String> = None;
     let mut stats_only = false;
     let mut stats_out: Option<String> = None;
+    let mut viewer_out: Option<String> = None;
 
     let mut i = 0;
     while i < args.len() {
@@ -115,6 +117,10 @@ fn cmd_run(args: &[String]) {
                 stats_out = Some(args[i + 1].clone());
                 i += 2;
             }
+            "--viewer-out" => {
+                viewer_out = Some(args[i + 1].clone());
+                i += 2;
+            }
             other => {
                 eprintln!("unknown argument '{other}'");
                 i += 1;
@@ -140,6 +146,20 @@ fn cmd_run(args: &[String]) {
     if !stats_only {
         let json = to_json(&replay).expect("serialize replay");
         fs::write(&out, json).unwrap_or_else(|e| panic!("failed to write {out}: {e}"));
+    }
+
+    if let Some(viewer_path) = &viewer_out {
+        // A second, independent simulation pass with the same seed -
+        // deterministic, so it reproduces the same match. Simpler than
+        // threading trace capture through run_match_with_stats for a
+        // command that isn't on any hot path.
+        let (ruleset2, ruleset_toml2) = load_ruleset(ruleset_path.as_deref());
+        let agent_a2 = make_agent(&agent_a, seed, 0);
+        let agent_b2 = make_agent(&agent_b, seed, 1);
+        let (_replay2, viewer_trace) = trace::run_match_with_trace(agent_a2, agent_b2, ruleset2, seed, ruleset_toml2, &agent_a, &agent_b);
+        let trace_json = serde_json::to_string(&viewer_trace).expect("serialize viewer trace");
+        fs::write(viewer_path, trace_json).unwrap_or_else(|e| panic!("failed to write {viewer_path}: {e}"));
+        println!("viewer trace -> {viewer_path} (open viewer/index.html and load this file)");
     }
 
     match &replay.result {

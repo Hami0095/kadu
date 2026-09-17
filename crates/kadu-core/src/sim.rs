@@ -162,6 +162,20 @@ impl Sim {
         self.fighters[idx].attack_kind
     }
 
+    /// Same as `fighter_attack_kind`, plus the crouching/jumping variant
+    /// flags - a host-only tool (the viewer trace generator) needs these
+    /// to pick the right hitbox rectangle from the ruleset; agents still
+    /// never see this.
+    pub fn fighter_attack_variant(&self, idx: usize) -> Option<(crate::types::AttackKind, bool, bool)> {
+        self.fighters[idx].attack_kind.map(|k| (k, self.fighters[idx].attack_crouching, self.fighters[idx].attack_jumping))
+    }
+
+    /// Whether the fighter is currently in ThrowAttempt's active window -
+    /// same host-only rationale as `fighter_attack_variant`.
+    pub fn fighter_throw_active(&self, idx: usize) -> bool {
+        crate::state_machine::throw_is_active(&self.fighters[idx], &self.ruleset)
+    }
+
     fn distance(&self) -> Fixed {
         (self.fighters[0].position.x - self.fighters[1].position.x).abs()
     }
@@ -183,7 +197,7 @@ impl Sim {
         }
     }
 
-    fn round_ticks_remaining(&self) -> u32 {
+    pub fn round_ticks_remaining(&self) -> u32 {
         let limit = if self.sudden_death { self.ruleset.sudden_death_ticks } else { self.ruleset.round_ticks };
         limit.saturating_sub(self.round_tick)
     }

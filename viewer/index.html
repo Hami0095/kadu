@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kadu Replay Viewer</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #14161c;
+    --panel: #1c1f28;
+    --panel-border: #2c313d;
+    --text: #e6e8ef;
+    --muted: #8a90a3;
+    --accent: #4fb0ff;
+    --p1: #4fb0ff;
+    --p2: #ff6b6b;
+    --hp: #3ddc84;
+    --hp-low: #ff4d4d;
+    --guard: #ffb648;
+    --surge: #b06bff;
+    --hitbox: #ff3b3b;
+    --hurtbox: #3ddc84;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    padding: 16px;
+    padding-bottom: 32px;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 16px; }
+  .layout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .main-col { flex: 1 1 640px; min-width: 320px; max-width: 100%; }
+  .side-col { flex: 0 1 320px; min-width: 260px; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .panel h2 { font-size: 13px; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  #loader { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  #loader input[type="file"] { color: var(--text); max-width: 100%; }
+  #loader input[type="text"] { flex: 1 1 240px; min-width: 160px; background: var(--panel); color: var(--text); border: 1px solid var(--panel-border); border-radius: 4px; padding: 6px 8px; }
+  button {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #08131f; border-color: var(--accent); font-weight: 600; }
+  #canvasWrap { width: 100%; overflow-x: auto; }
+  canvas { background: #0c0e13; border: 1px solid var(--panel-border); border-radius: 6px; display: block; max-width: 100%; }
+  .hud-row { display: flex; gap: 16px; margin-bottom: 8px; }
+  .fighter-hud { flex: 1; min-width: 0; }
+  .fighter-hud .name { font-weight: 600; font-size: 13px; margin-bottom: 4px; display: flex; justify-content: space-between; gap: 6px; }
+  .fighter-hud .state { color: var(--muted); font-size: 11px; }
+  .bar-track { background: #0c0e13; border: 1px solid var(--panel-border); border-radius: 3px; height: 10px; margin: 3px 0; overflow: hidden; }
+  .bar-fill { height: 100%; transition: width 0.05s linear; }
+  .bar-label { font-size: 10px; color: var(--muted); display: flex; justify-content: space-between; }
+  #roundInfo { text-align: center; margin-bottom: 8px; font-size: 13px; }
+  #roundPips { display: flex; justify-content: center; gap: 6px; margin-bottom: 4px; }
+  .pip { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--panel-border); }
+  .pip.p1 { background: var(--p1); }
+  .pip.p2 { background: var(--p2); }
+  .pip.empty { background: transparent; }
+  #clock { font-variant-numeric: tabular-nums; font-size: 16px; text-align: center; margin-bottom: 8px; }
+  .controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .controls input[type="range"] { flex: 1 1 200px; min-width: 120px; }
+  select { background: var(--panel); color: var(--text); border: 1px solid var(--panel-border); border-radius: 4px; padding: 5px; }
+  label.toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
+  #intentPanel, #eventLog { font-size: 12px; max-height: 220px; overflow-y: auto; }
+  #intentPanel .row, #eventLog .row { padding: 4px 0; border-bottom: 1px solid var(--panel-border); }
+  #eventLog .row:last-child, #intentPanel .row:last-child { border-bottom: none; }
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; margin-right: 4px; }
+  .tag.p1 { background: var(--p1); color: #08131f; }
+  .tag.p2 { background: var(--p2); color: #08131f; }
+  #dropHint { text-align: center; color: var(--muted); padding: 60px 12px; }
+  #dropHint code { background: var(--panel); padding: 2px 6px; border-radius: 3px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<h1>Kadu Replay Viewer</h1>
+<div class="sub">Single static HTML file. No server, no build step, no network required once a trace is loaded. Renders a pre-computed per-tick trace produced by <code>kadu run --viewer-out</code> — nothing is re-simulated here.</div>
+
+<div id="loader">
+  <input type="file" id="fileInput" accept=".json">
+  <input type="text" id="urlInput" placeholder="or paste a trace URL and press Load">
+  <button id="loadUrlBtn">Load URL</button>
+</div>
+
+<div class="layout" id="app" style="display:none;">
+  <div class="main-col">
+    <div class="panel">
+      <div id="roundInfo">Round <span id="roundNum">-</span> / <span id="roundsToWin">-</span> to win</div>
+      <div id="roundPips"></div>
+      <div id="clock">--:--</div>
+
+      <div class="hud-row">
+        <div class="fighter-hud">
+          <div class="name"><span id="p1Name">P1</span><span class="state" id="p1State"></span></div>
+          <div class="bar-label"><span>Vitality</span><span id="p1HpText"></span></div>
+          <div class="bar-track"><div class="bar-fill" id="p1Hp" style="background:var(--hp); width:100%"></div></div>
+          <div class="bar-label"><span>Guard</span><span id="p1GdText"></span></div>
+          <div class="bar-track"><div class="bar-fill" id="p1Gd" style="background:var(--guard); width:100%"></div></div>
+          <div class="bar-label"><span>Surge</span><span id="p1SgText"></span></div>
+          <div class="bar-track"><div class="bar-fill" id="p1Sg" style="background:var(--surge); width:0%"></div></div>
+        </div>
+        <div class="fighter-hud">
+          <div class="name"><span id="p2Name">P2</span><span class="state" id="p2State"></span></div>
+          <div class="bar-label"><span>Vitality</span><span id="p2HpText"></span></div>
+          <div class="bar-track"><div class="bar-fill" id="p2Hp" style="background:var(--hp); width:100%"></div></div>
+          <div class="bar-label"><span>Guard</span><span id="p2GdText"></span></div>
+          <div class="bar-track"><div class="bar-fill" id="p2Gd" style="background:var(--guard); width:100%"></div></div>
+          <div class="bar-label"><span>Surge</span><span id="p2SgText"></span></div>
+          <div class="bar-track"><div class="bar-fill" id="p2Sg" style="background:var(--surge); width:0%"></div></div>
+        </div>
+      </div>
+
+      <div id="canvasWrap"><canvas id="canvas" width="960" height="420"></canvas></div>
+
+      <div class="controls">
+        <button id="stepBackBtn" title="Step back 1 tick">&#9664;|</button>
+        <button id="playBtn" class="primary" title="Play/Pause">&#9654; Play</button>
+        <button id="stepBtn" title="Step forward 1 tick">|&#9654;</button>
+        <button id="stepSecBtn" title="Step forward 1 second">+1s</button>
+        <input type="range" id="scrub" min="0" max="0" value="0">
+        <span id="tickLabel" style="min-width:90px; text-align:right;">tick 0 / 0</span>
+      </div>
+      <div class="controls">
+        <label>Speed
+          <select id="speed">
+            <option value="0.25">0.25x</option>
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+            <option value="4">4x</option>
+          </select>
+        </label>
+        <label class="toggle"><input type="checkbox" id="hitboxToggle"> Show hitboxes / hurtboxes</label>
+        <label class="toggle"><input type="checkbox" id="loopToggle"> Loop</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-col">
+    <div class="panel">
+      <h2>Match</h2>
+      <div id="matchMeta" style="font-size:12px; line-height:1.6;"></div>
+    </div>
+    <div class="panel">
+      <h2>Intent this tick</h2>
+      <div id="intentPanel"></div>
+    </div>
+    <div class="panel">
+      <h2>Event log</h2>
+      <div id="eventLog"></div>
+    </div>
+  </div>
+</div>
+
+<div id="dropHint">
+  Load a trace file above, or open this page with <code>?replay=&lt;url-to-trace.json&gt;</code>.<br><br>
+  Generate one with:<br>
+  <code>kadu run --agent-a rusher --agent-b dummy --seed 42 --out match.json --viewer-out trace.json</code>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- state ----------
+  let trace = null;
+  let tickIndex = 0;
+  let playing = false;
+  let lastFrameTime = 0;
+  let tickAccumulator = 0;
+  let showHitboxes = false;
+  let loop = false;
+
+  const el = (id) => document.getElementById(id);
+  const canvas = el("canvas");
+  const ctx = canvas.getContext("2d");
+
+  // ---------- loading ----------
+  function loadTraceObject(obj) {
+    trace = obj;
+    tickIndex = 0;
+    playing = false;
+    el("playBtn").innerHTML = "&#9654; Play";
+    el("app").style.display = "";
+    el("dropHint").style.display = "none";
+    el("scrub").max = String(trace.ticks.length - 1);
+    el("scrub").value = "0";
+    el("p1Name").textContent = trace.meta.agent_names[0];
+    el("p2Name").textContent = trace.meta.agent_names[1];
+    el("roundsToWin").textContent = trace.meta.rounds_to_win;
+    el("matchMeta").innerHTML = [
+      ["Engine", trace.meta.engine_version],
+      ["Ruleset", trace.meta.ruleset_version],
+      ["Ruleset hash", trace.meta.ruleset_hash],
+      ["Seed", trace.meta.seed],
+      ["Ticks", trace.ticks.length],
+    ].map(([k, v]) => `<div><b>${k}:</b> ${v}</div>`).join("");
+
+    // Round outcomes aren't tagged with a winner in the trace (only the
+    // outcome kind), so infer it from whoever has more vitality left at
+    // the tick the round ended - true for KO (loser is at 0) and for
+    // percentage timeouts, and gives a neutral pip on a double KO.
+    trace._roundEvents = [];
+    for (let i = 0; i < trace.ticks.length; i++) {
+      const tk = trace.ticks[i];
+      if (tk.round_ended) {
+        const v0 = tk.fighters[0].vitality, v1 = tk.fighters[1].vitality;
+        const winner = v0 === v1 ? null : (v0 > v1 ? 0 : 1);
+        trace._roundEvents.push({ tickIndex: i, winner });
+      }
+    }
+    render();
+  }
+
+  el("fileInput").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        loadTraceObject(JSON.parse(reader.result));
+      } catch (err) {
+        alert("Could not parse this file as a Kadu viewer trace: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  function loadFromUrl(url) {
+    fetch(url)
+      .then((r) => {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(loadTraceObject)
+      .catch((err) => alert("Could not load trace from URL: " + err.message));
+  }
+
+  el("loadUrlBtn").addEventListener("click", () => {
+    const url = el("urlInput").value.trim();
+    if (url) loadFromUrl(url);
+  });
+
+  (function checkQueryParam() {
+    const params = new URLSearchParams(window.location.search);
+    const replay = params.get("replay");
+    if (replay) {
+      el("urlInput").value = replay;
+      loadFromUrl(replay);
+    }
+  })();
+
+  // ---------- playback controls ----------
+  el("stepBtn").addEventListener("click", () => { stop(); step(1); });
+  el("stepBackBtn").addEventListener("click", () => { stop(); step(-1); });
+  el("stepSecBtn").addEventListener("click", () => { stop(); step(Math.round(trace.meta.tick_rate)); });
+  el("playBtn").addEventListener("click", () => { playing ? stop() : play(); });
+  el("scrub").addEventListener("input", (e) => {
+    stop();
+    tickIndex = clamp(parseInt(e.target.value, 10) || 0, 0, trace.ticks.length - 1);
+    render();
+  });
+  el("hitboxToggle").addEventListener("change", (e) => { showHitboxes = e.target.checked; render(); });
+  el("loopToggle").addEventListener("change", (e) => { loop = e.target.checked; });
+
+  document.addEventListener("keydown", (e) => {
+    if (!trace) return;
+    if (e.target.tagName === "INPUT") return;
+    if (e.code === "Space") { e.preventDefault(); playing ? stop() : play(); }
+    else if (e.code === "ArrowRight") { stop(); step(1); }
+    else if (e.code === "ArrowLeft") { stop(); step(-1); }
+  });
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function step(n) {
+    if (!trace) return;
+    tickIndex = clamp(tickIndex + n, 0, trace.ticks.length - 1);
+    render();
+  }
+
+  function play() {
+    if (!trace) return;
+    playing = true;
+    el("playBtn").innerHTML = "&#10074;&#10074; Pause";
+    lastFrameTime = performance.now();
+    tickAccumulator = 0;
+    requestAnimationFrame(frame);
+  }
+  function stop() {
+    playing = false;
+    el("playBtn").innerHTML = "&#9654; Play";
+  }
+
+  function frame(now) {
+    if (!playing) return;
+    const dt = (now - lastFrameTime) / 1000;
+    lastFrameTime = now;
+    const speed = parseFloat(el("speed").value);
+    const tickRate = trace.meta.tick_rate || 60;
+    tickAccumulator += dt * tickRate * speed;
+    const wholeTicks = Math.floor(tickAccumulator);
+    if (wholeTicks > 0) {
+      tickAccumulator -= wholeTicks;
+      if (tickIndex + wholeTicks >= trace.ticks.length - 1) {
+        if (loop) {
+          tickIndex = 0;
+        } else {
+          tickIndex = trace.ticks.length - 1;
+          render();
+          stop();
+          return;
+        }
+      } else {
+        tickIndex += wholeTicks;
+      }
+      render();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- rendering ----------
+  const STATE_COLORS = {
+    AttackStartup: "#ffd166", AttackActive: "#ff3b3b", AttackRecovery: "#c9a227",
+    BlockStand: "#4fb0ff", BlockCrouch: "#4fb0ff", BlockStun: "#8ad0ff",
+    HitStun: "#ff8c8c", Knockdown: "#777", WakeUp: "#999",
+    GuardCrush: "#ff9f1c", Dizzy: "#ff9f1c",
+    ThrowAttempt: "#b06bff", ThrowWhiff: "#8a5ec2", Thrown: "#b06bff",
+  };
+
+  function fmtClock(ticks, tickRate) {
+    const secs = Math.max(0, ticks) / (tickRate || 60);
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  }
+
+  function worldToScreenBuilder() {
+    const w = canvas.width, h = canvas.height;
+    const margin = 40;
+    const arenaW = trace.meta.arena_width;
+    const groundY = Math.min(0, trace.meta.ceiling - trace.meta.fighter_height);
+    const spanY = Math.max(trace.meta.fighter_height * 1.6, trace.meta.ceiling - groundY);
+    const scaleX = (w - margin * 2) / arenaW;
+    const scaleY = (h - margin * 2) / spanY;
+    const scale = Math.min(scaleX, scaleY);
+    function toScreen(x, y) {
+      const sx = margin + x * scale;
+      const sy = h - margin - (y - groundY) * scale;
+      return [sx, sy];
+    }
+    return { toScreen, scale, groundY };
+  }
+
+  function drawRect(rectDef, originX, originY, facingRight, toScreen, color, fillAlpha) {
+    // Mirrors kadu-core's Rect::to_world: facing right keeps x offset as-is,
+    // facing left mirrors it about the origin.
+    const x0 = facingRight ? originX + rectDef.x : originX - rectDef.x - rectDef.w;
+    const x1 = x0 + rectDef.w;
+    const y0 = originY + rectDef.y;
+    const y1 = y0 + rectDef.h;
+    const [sx0, sy0] = toScreen(x0, y1);
+    const [sx1, sy1] = toScreen(x1, y0);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(sx0, sy0, sx1 - sx0, sy1 - sy0);
+    if (fillAlpha) {
+      ctx.fillStyle = color + Math.round(fillAlpha * 255).toString(16).padStart(2, "0");
+      ctx.fillRect(sx0, sy0, sx1 - sx0, sy1 - sy0);
+    }
+  }
+
+  function drawFighter(f, color, toScreen, scale) {
+    const [sx, sfeet] = toScreen(f.x, 0);
+    const groundY = Math.min(0, trace.meta.ceiling - trace.meta.fighter_height);
+    const [, sground] = toScreen(f.x, groundY);
+    const bodyH = trace.meta.fighter_height * scale;
+    const capsuleW = trace.meta.fighter_width * scale * 0.6;
+    const headR = capsuleW * 0.55;
+    const bottom = sground;
+    const top = bottom - bodyH;
+    const capsuleTop = top + headR * 1.6;
+
+    ctx.fillStyle = color;
+    ctx.strokeStyle = "#00000055";
+    // body capsule
+    ctx.beginPath();
+    ctx.moveTo(sx - capsuleW / 2, capsuleTop);
+    ctx.lineTo(sx - capsuleW / 2, bottom - capsuleW / 2);
+    ctx.arc(sx, bottom - capsuleW / 2, capsuleW / 2, Math.PI, 0, false);
+    ctx.lineTo(sx + capsuleW / 2, capsuleTop);
+    ctx.arc(sx, capsuleTop, capsuleW / 2, 0, Math.PI, true);
+    ctx.closePath();
+    ctx.fill();
+    // head
+    ctx.beginPath();
+    ctx.arc(sx, top + headR, headR, 0, Math.PI * 2);
+    ctx.fill();
+    // facing tick (small triangle pointing the facing direction)
+    const dir = f.facing === "right" ? 1 : -1;
+    ctx.beginPath();
+    ctx.moveTo(sx + dir * headR * 1.5, top + headR);
+    ctx.lineTo(sx + dir * headR * 0.6, top + headR - 5);
+    ctx.lineTo(sx + dir * headR * 0.6, top + headR + 5);
+    ctx.closePath();
+    ctx.fill();
+
+    return { sx, top, bottom };
+  }
+
+  function render() {
+    if (!trace) return;
+    const t = trace.ticks[tickIndex];
+    el("tickLabel").textContent = `tick ${t.tick} / ${trace.ticks[trace.ticks.length - 1].tick}`;
+    el("scrub").value = String(tickIndex);
+    el("roundNum").textContent = t.round;
+    el("clock").textContent = fmtClock(t.ticks_remaining, trace.meta.tick_rate);
+
+    // Round pips: one row per fighter, filled left-to-right per round won,
+    // based on the winner inferred at load time (see trace._roundEvents).
+    const pipsEl = el("roundPips");
+    pipsEl.innerHTML = "";
+    const wins = [0, 0];
+    for (const ev of trace._roundEvents) {
+      if (ev.tickIndex > tickIndex) break;
+      if (ev.winner !== null) wins[ev.winner]++;
+    }
+    const need = trace.meta.rounds_to_win;
+    const p1Wrap = document.createElement("div");
+    p1Wrap.style.cssText = "display:flex; gap:4px;";
+    const p2Wrap = document.createElement("div");
+    p2Wrap.style.cssText = "display:flex; gap:4px;";
+    for (let i = 0; i < need; i++) {
+      const d1 = document.createElement("div");
+      d1.className = "pip " + (i < wins[0] ? "p1" : "empty");
+      p1Wrap.appendChild(d1);
+      const d2 = document.createElement("div");
+      d2.className = "pip " + (i < wins[1] ? "p2" : "empty");
+      p2Wrap.appendChild(d2);
+    }
+    pipsEl.appendChild(p1Wrap);
+    const sep = document.createElement("div");
+    sep.style.cssText = "width:1px; background:var(--panel-border); margin:0 4px;";
+    pipsEl.appendChild(sep);
+    pipsEl.appendChild(p2Wrap);
+
+    updateHud("p1", t.fighters[0]);
+    updateHud("p2", t.fighters[1]);
+
+    const geo = worldToScreenBuilder();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // floor line
+    const groundY = geo.groundY;
+    const [, floorScreenY] = geo.toScreen(0, groundY);
+    ctx.strokeStyle = "#2c313d";
+    ctx.beginPath();
+    ctx.moveTo(0, floorScreenY);
+    ctx.lineTo(canvas.width, floorScreenY);
+    ctx.stroke();
+    // walls
+    ctx.strokeStyle = "#3a4050";
+    const [wx0] = geo.toScreen(0, 0);
+    const [wx1] = geo.toScreen(trace.meta.arena_width, 0);
+    ctx.beginPath();
+    ctx.moveTo(wx0, floorScreenY);
+    ctx.lineTo(wx0, floorScreenY - trace.meta.ceiling * geo.scale);
+    ctx.moveTo(wx1, floorScreenY);
+    ctx.lineTo(wx1, floorScreenY - trace.meta.ceiling * geo.scale);
+    ctx.stroke();
+
+    drawFighter(t.fighters[0], getComputedStyle(document.documentElement).getPropertyValue("--p1").trim(), geo.toScreen, geo.scale);
+    drawFighter(t.fighters[1], getComputedStyle(document.documentElement).getPropertyValue("--p2").trim(), geo.toScreen, geo.scale);
+
+    if (showHitboxes) {
+      for (let i = 0; i < 2; i++) {
+        const f = t.fighters[i];
+        const facingRight = f.facing === "right";
+        const hurtKeys = f.state === "Crouch" || f.state === "BlockCrouch"
+          ? ["head_crouch", "torso_crouch", "arm_left_crouch", "arm_right_crouch", "leg_left_crouch", "leg_right_crouch"]
+          : ["head", "torso", "arm_left", "arm_right", "leg_left", "leg_right"];
+        for (const k of hurtKeys) {
+          drawRect(trace.hurtboxes[k], f.x, f.y, facingRight, geo.toScreen, "#3ddc84", 0.12);
+        }
+        if (f.active_hitbox) {
+          drawRect(trace.hitboxes[f.active_hitbox], f.x, f.y, facingRight, geo.toScreen, "#ff3b3b", 0.25);
+        }
+        if (f.throw_active) {
+          drawRect(trace.hitboxes.throw, f.x, f.y, facingRight, geo.toScreen, "#b06bff", 0.25);
+        }
+      }
+    }
+
+    renderIntents(t);
+    renderEvents();
+  }
+
+  function updateHud(prefix, f) {
+    el(prefix + "State").textContent = f.state + (f.combo_count > 0 ? ` x${f.combo_count}` : "");
+    const hpPct = clamp((f.vitality / 1000) * 100, 0, 100); // display scale; vitality max varies by ruleset but 1000 is the shipped default
+    el(prefix + "Hp").style.width = hpPct + "%";
+    el(prefix + "Hp").style.background = hpPct < 25 ? "var(--hp-low)" : "var(--hp)";
+    el(prefix + "HpText").textContent = f.vitality;
+    el(prefix + "Gd").style.width = clamp(f.guard, 0, 100) + "%";
+    el(prefix + "GdText").textContent = f.guard;
+    el(prefix + "Sg").style.width = clamp((f.surge / 300) * 100, 0, 100) + "%";
+    el(prefix + "SgText").textContent = f.surge;
+  }
+
+  function fmtIntent(intent) {
+    if (!intent) return "-";
+    switch (intent.action) {
+      case "none": return "none";
+      case "move": return "move " + intent.direction;
+      case "attack": return "attack " + intent.attack;
+      case "block": return "block";
+      case "crouch": return "crouch";
+      case "dash": return "dash " + intent.direction;
+      case "jump": return "jump " + intent.direction;
+      case "throw": return "throw";
+      default: return JSON.stringify(intent);
+    }
+  }
+
+  function renderIntents(t) {
+    el("intentPanel").innerHTML = `
+      <div class="row"><span class="tag p1">P1</span>${fmtIntent(t.intents[0])}</div>
+      <div class="row"><span class="tag p2">P2</span>${fmtIntent(t.intents[1])}</div>
+    `;
+  }
+
+  // Event log accumulates hits/warnings/round+match end up to the current
+  // tick, so scrubbing backward and forward gives a consistent history.
+  function renderEvents() {
+    const logEl = el("eventLog");
+    let html = "";
+    const start = Math.max(0, tickIndex - 600); // cap how far back we scan for perf on long matches
+    for (let i = tickIndex; i >= start; i--) {
+      const t = trace.ticks[i];
+      const rows = [];
+      if (t.hits) {
+        for (const h of t.hits) {
+          const who = h.attacker === 0 ? "p1" : "p2";
+          const label = h.is_tech ? "throw teched" : h.is_throw ? "throw" : (h.kind || "hit") + (h.blocked ? " (blocked)" : "") + (h.hard_knockdown ? " (hard knockdown)" : "");
+          rows.push(`<span class="tag ${who}">${who.toUpperCase()}</span>t${t.tick}: ${label}${h.damage ? " dmg " + h.damage : ""}`);
+        }
+      }
+      if (t.warnings) {
+        for (const w of t.warnings) {
+          const who = w.fighter_idx === 0 ? "p1" : "p2";
+          rows.push(`<span class="tag ${who}">${who.toUpperCase()}</span>t${t.tick}: passivity warning${w.second_warning ? " (2nd, penalty applied)" : ""}`);
+        }
+      }
+      if (t.round_ended) rows.push(`t${t.tick}: round ${t.round} ended — ${t.round_ended}`);
+      if (t.match_reason) rows.push(`t${t.tick}: MATCH OVER — winner ${t.match_winner == null ? "none (draw)" : "P" + (t.match_winner + 1)} (${t.match_reason})`);
+      for (const r of rows) html += `<div class="row">${r}</div>`;
+      if (html.length > 8000) break; // don't let one giant match blow up the DOM
+    }
+    logEl.innerHTML = html || '<div class="row" style="color:var(--muted)">No events yet.</div>';
+  }
+})();
+</script>
+</body>
+</html>
